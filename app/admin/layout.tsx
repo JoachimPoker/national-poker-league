@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
 import LogoutButton from './LogoutButton'
+import Link from 'next/link'
 
 export default async function AdminLayout({
   children,
@@ -12,69 +12,66 @@ export default async function AdminLayout({
   const user = session ? JSON.parse(session.value) : null
 
   return (
-    <div style={{ minHeight: '100vh', background: '#080612' }}>
-      <nav style={{
-        background: '#0a0814',
-        borderBottom: '1px solid rgba(122,33,100,0.4)',
-        padding: '0 40px',
-        height: '60px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-      }}>
-        <div style={{ borderLeft: '3px solid var(--plum)', paddingLeft: '14px' }}>
-          <div style={{
-            fontSize: '14px', fontWeight: 500,
-            color: 'var(--cream)', letterSpacing: '2px', textTransform: 'uppercase',
-          }}>
-            NPL Admin
+    <div className="min-h-screen bg-[#040408] text-white font-sans selection:bg-cyan-500/30">
+      
+      {/* Admin Navbar */}
+      <nav className="sticky top-0 z-50 bg-black/60 backdrop-blur-xl border-b border-white/10 px-6 md:px-10 h-16 flex items-center justify-between">
+        <div className="flex items-center gap-8">
+          
+          {/* Admin Logo */}
+          <div className="border-l-2 border-[#D4AF37] pl-3">
+            <div className="text-[12px] font-black text-white tracking-[3px] uppercase leading-tight drop-shadow-md">
+              NPL Vault
+            </div>
+            <div className="text-[8px] text-[#D4AF37] tracking-[2px] uppercase font-black">
+              Management Panel
+            </div>
           </div>
-          <div style={{
-            fontSize: '9px', color: 'var(--plum-light)',
-            letterSpacing: '2px', textTransform: 'uppercase',
-          }}>
-            Management Panel
+
+          {/* Nav Links */}
+          <div className="hidden lg:flex gap-6">
+            {[
+              { href: '/admin', label: 'Dashboard' },
+              { href: '/admin/upload', label: 'Upload Data' },
+              { href: '/admin/news', label: 'News' },
+              { href: '/admin/prizes', label: 'Prizes' },
+              { href: '/admin/seasons', label: 'Seasons' },
+              { href: '/admin/users', label: 'Users' },
+              { href: '/admin/badges', label: 'Badges' },
+            ].map(link => (
+              <Link 
+                key={link.href} 
+                href={link.href} 
+                className="text-[10px] tracking-[2px] text-white/40 hover:text-white uppercase font-bold transition-colors"
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '24px' }}>
-          {[
-            { href: '/admin', label: 'Dashboard' },
-            { href: '/admin/upload', label: 'Upload Data' },
-            { href: '/admin/news', label: 'News' },
-            { href: '/admin/prizes', label: 'Prizes' },
-            { href: '/admin/seasons', label: 'Seasons' },
-            { href: '/admin/users', label: 'Users' },
-            { href: '/admin/badges', label: 'Badges' },
-          ].map(link => (
-            <a key={link.href} href={link.href} style={{
-              fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase',
-              color: 'var(--text-dim)', textDecoration: 'none',
-            }}>
-              {link.label}
-            </a>
-          ))}
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        {/* User Actions */}
+        <div className="flex items-center gap-6">
           {user && (
-            <span style={{ fontSize: '12px', color: 'var(--text-dimmest)' }}>
+            <span className="hidden md:inline-block text-[10px] text-white/30 uppercase tracking-[2px] font-black">
               {user.name}
             </span>
           )}
-          <a href="/" style={{
-            fontSize: '11px', color: 'var(--text-dimmer)',
-            textDecoration: 'none', letterSpacing: '1px',
-          }}>
-            View site
+          <a 
+            href="/" 
+            className="text-[10px] text-cyan-400 hover:text-cyan-300 uppercase tracking-[2px] font-black transition-colors flex items-center gap-1"
+          >
+            View Site <span className="text-lg leading-none mt-[-2px]">↗</span>
           </a>
           <LogoutButton />
         </div>
       </nav>
 
-      <div style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto' }}>
+      {/* Main Admin Content Wrapper */}
+      <div className="p-6 md:p-12 max-w-[1400px] mx-auto relative z-10">
         {children}
       </div>
+
     </div>
   )
 }
