@@ -1,26 +1,367 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* ── Backgrounds ── */
+  --bg-base: #080818;
+  --bg-nav: #0a0820;
+  --bg-card: #0d0d2a;
+  --bg-card-alt: #0a0a20;
+  --bg-row-alt: #0a0a20;
+  --bg-blue-subtle: rgba(67, 121, 255, 0.1);
+  --bg-blue-dim: rgba(67, 121, 255, 0.06);
+  --bg-gold-subtle: rgba(197, 160, 82, 0.08);
+  --bg-navy-mid: #1F1A5A;
+
+  /* ── Brand colours ── */
+  --blue: #4379FF;
+  --blue-border: rgba(67, 121, 255, 0.25);
+  --blue-border-dim: rgba(67, 121, 255, 0.12);
+  --blue-glow: rgba(67, 121, 255, 0.15);
+
+  /* Gold — use sparingly: #1 rank, hero stat, admin button only */
+  --gold-dark: #C5A052;
+  --gold-mid: #e0c070;
+  --gold-light: #FBF091;
+  --gold-gradient: linear-gradient(90deg, #C5A052, #FBF091, #C5A052);
+  --gold-gradient-v: linear-gradient(180deg, #FBF091, #C5A052);
+  --gold-border: rgba(197, 160, 82, 0.25);
+  --gold-subtle: rgba(197, 160, 82, 0.08);
+
+  /* League accent colours */
+  --hr-color: #e8c870;
+  --hr-bg: rgba(232, 200, 112, 0.1);
+  --hr-border: rgba(232, 200, 112, 0.25);
+  --lr-color: #60c890;
+  --lr-bg: rgba(96, 200, 144, 0.1);
+  --lr-border: rgba(96, 200, 144, 0.25);
+  --main-color: #4379FF;
+  --main-bg: rgba(67, 121, 255, 0.1);
+  --main-border: rgba(67, 121, 255, 0.25);
+
+  /* ── Text ── */
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.65);
+  --text-muted: rgba(255, 255, 255, 0.4);
+  --text-dim: rgba(255, 255, 255, 0.25);
+  --text-blue: #4379FF;
+  --text-gold: #FBF091;
+
+  /* ── Borders ── */
+  --border-card: rgba(67, 121, 255, 0.15);
+  --border-row: rgba(255, 255, 255, 0.05);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+
+  /* ── Typography ── */
+  --font-size-xs: 10px;
+  --font-size-sm: 11px;
+  --font-size-base: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 20px;
+
+  /* ── Spacing ── */
+  --page-padding: 48px;
+  --card-padding: 22px;
+  --section-gap: 48px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* ── Base ── */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-base); }
+::-webkit-scrollbar-thumb { background: var(--bg-navy-mid); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--blue); }
+
+/* ── Focus ── */
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* ── Links & buttons ── */
+a { color: inherit; text-decoration: none; transition: color 0.15s ease; }
+button { transition: all 0.15s ease; cursor: pointer; }
+
+/* ── Form elements ── */
+input, select, textarea {
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  background: var(--bg-nav);
+  border: 1px solid var(--blue-border);
+  border-radius: 4px;
+  padding: 10px 14px;
+  width: 100%;
+  transition: border-color 0.15s ease;
+}
+input::placeholder, textarea::placeholder { color: var(--text-dim); }
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+select option { background: var(--bg-nav); }
+
+/* ── Utility classes ── */
+
+/* Gold gradient text — use very sparingly */
+.gold-text {
+  background: var(--gold-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Section heading label */
+.section-label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+/* Card */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  padding: var(--card-padding);
+}
+
+/* Page wrapper */
+.page-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-base);
+}
+
+/* Page content max width */
+.page-content {
+  flex: 1;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  padding: var(--section-gap) var(--page-padding);
+}
+
+/* Page header section */
+.page-header {
+  background: var(--bg-nav);
+  padding: 48px var(--page-padding) 40px;
+  border-bottom: 1px solid var(--border-card);
+}
+.page-header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Eyebrow label above headings */
+.eyebrow {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--text-blue);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.eyebrow::before {
+  content: '';
+  display: inline-block;
+  width: 28px;
+  height: 1px;
+  background: var(--blue);
+}
+
+/* Page title */
+.page-title {
+  font-size: 38px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -1px;
+  margin-bottom: 8px;
+}
+
+/* Page subtitle */
+.page-subtitle {
+  font-size: var(--font-size-md);
+  color: var(--text-secondary);
+}
+
+/* Back link */
+.back-link {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 24px;
+  transition: color 0.15s;
+}
+.back-link:hover { color: var(--text-primary); }
+
+/* Event badge base */
+.badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.badge-main { background: var(--main-bg); color: var(--main-color); border: 1px solid var(--main-border); }
+.badge-hr { background: var(--hr-bg); color: var(--hr-color); border: 1px solid var(--hr-border); }
+.badge-lr { background: var(--lr-bg); color: var(--lr-color); border: 1px solid var(--lr-border); }
+
+/* Leaderboard table */
+.lb-table { border-radius: 8px; overflow: hidden; border: 1px solid var(--border-card); }
+.lb-header {
+  display: grid;
+  padding: 12px 20px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-card);
+}
+.lb-header-col {
+  font-size: var(--font-size-xs);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.lb-row {
+  display: grid;
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--border-row);
+  align-items: center;
+  transition: background 0.1s ease;
+}
+.lb-row:last-child { border-bottom: none; }
+.lb-row:hover { background: rgba(67, 121, 255, 0.05) !important; }
+.lb-row-even { background: var(--bg-base); }
+.lb-row-odd { background: var(--bg-row-alt); }
+.lb-row-first { background: var(--bg-gold-subtle) !important; position: relative; }
+
+/* Player avatar circle */
+.avatar {
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.avatar-blue { background: rgba(67,121,255,0.12); color: var(--blue); border: 1px solid rgba(67,121,255,0.3); }
+.avatar-gold { background: rgba(197,160,82,0.15); color: var(--gold-light); border: 1px solid rgba(197,160,82,0.35); }
+.avatar-anon { background: rgba(255,255,255,0.04); color: var(--text-dim); border: 1px solid rgba(255,255,255,0.08); }
+
+/* Admin button style */
+.btn-primary {
+  background: var(--blue);
+  color: var(--text-primary);
+  border: none;
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.btn-secondary {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.btn-danger {
+  background: rgba(200, 50, 50, 0.1);
+  color: #f87171;
+  border: 1px solid rgba(200, 50, 50, 0.25);
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+/* Success / error message boxes */
+.msg-success {
+  padding: 12px 16px;
+  border-radius: 4px;
+  background: rgba(0, 180, 80, 0.1);
+  border: 1px solid rgba(0, 180, 80, 0.25);
+  color: #4ade80;
+  font-size: var(--font-size-base);
+}
+.msg-error {
+  padding: 12px 16px;
+  border-radius: 4px;
+  background: rgba(200, 50, 50, 0.1);
+  border: 1px solid rgba(200, 50, 50, 0.25);
+  color: #f87171;
+  font-size: var(--font-size-base);
+}
+
+/* Horizontal divider */
+.divider { height: 1px; background: var(--border-row); margin: 0; }
+
+/* Stat card (used in admin dashboard and player profiles) */
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  padding: 18px 20px;
+}
+.stat-card-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
+}
+.stat-card-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+}
+
+/* Prize row */
+.prize-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border-row);
+}
+.prize-row:last-child { border-bottom: none; }
+.prize-pos { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 600; }
+.prize-pos-first { color: var(--gold-light); }
+.prize-val { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.prize-val-first { font-size: 16px; color: var(--gold-light); }
