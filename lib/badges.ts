@@ -24,6 +24,7 @@ export async function getPlayerLifetimeStats(
 
   const lifetimeWins = allResults.filter(r => r.finish_position === 1).length
   const lifetimeCashes = allResults.length
+  const lifetimeEventsPlayed = allResults.length // Same as cashes for now
   const lifetimePrizeMoney = allResults.reduce((sum, r) => sum + (r.prize_amount || 0), 0)
 
   const seasonResults = allResults.filter(r => r.season_id === seasonId)
@@ -69,6 +70,7 @@ export async function getPlayerLifetimeStats(
     nplRank,
     lifetimeWins,
     lifetimeCashes,
+    lifetimeEventsPlayed,
     lifetimePrizeMoney,
     hasBackToBack,
     hasRepeatChampion,

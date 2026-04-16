@@ -5,109 +5,163 @@ export default function BadgeGrid({ badges }: { badges: Badge[] }) {
   const categories = [...new Set(badges.map(b => b.category))]
 
   return (
-    <div className="flex flex-col gap-8">
-      {categories.map(cat => (
-        <div key={cat} className="relative">
-          <div className="text-[10px] font-black text-cyan-400/80 tracking-[4px] uppercase mb-5 border-b border-white/10 pb-2 drop-shadow-[0_0_8px_rgba(34,211,238,0.3)]">
-            {cat}
+    <div className="flex flex-col gap-10">
+      {categories.map(cat => {
+        const categoryBadges = badges.filter(b => b.category === cat)
+        const earnedCount = categoryBadges.filter(b => b.earned).length
+        
+        return (
+          <div key={cat} className="relative">
+            <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-3">
+              <div className="text-[11px] font-black text-cyan-400/90 tracking-[4px] uppercase drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]">
+                {cat}
+              </div>
+              <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
+                {earnedCount} / {categoryBadges.length}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+              {categoryBadges.map(badge => (
+                <BadgeCard key={badge.key} badge={badge} />
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-6">
-            {badges.filter(b => b.category === cat).map(badge => (
-              <BadgeHex key={badge.key} badge={badge} />
-            ))}
-          </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
 
-function BadgeHex({ badge }: { badge: Badge }) {
+function BadgeCard({ badge }: { badge: Badge }) {
   const colors = TIER_COLORS[badge.tier]
   const dim = !badge.earned
+  const hasImage = badge.image_url && badge.image_url.trim() !== ''
 
   return (
     <div
-      className={`group flex flex-col items-center gap-2.5 w-[90px] relative transition-all duration-500 ${
-        dim ? 'opacity-50 hover:opacity-80' : 'opacity-100 hover:-translate-y-1'
+      className={`group relative flex flex-col items-center p-5 rounded-2xl border backdrop-blur-md transition-all duration-500 cursor-help ${
+        dim 
+          ? 'bg-black/40 border-white/5 opacity-60 hover:opacity-90 hover:border-white/10' 
+          : 'border-white/10 hover:-translate-y-2 hover:shadow-2xl'
       }`}
-      title={badge.earned ? badge.desc : `${badge.desc} — not yet earned`}
+      style={{
+        backgroundColor: dim ? undefined : colors.bg,
+        borderColor: dim ? undefined : colors.border,
+        boxShadow: dim ? undefined : `inset 0 0 20px ${colors.bg}, ${colors.glow}`
+      }}
+      title={badge.desc}
     >
-      {/* Hexagon shape & Glow */}
-      <div className="relative flex items-center justify-center cursor-help">
-        
-        {/* Ambient Glow for Earned Badges */}
-        {!dim && (
-          <div 
-            className="absolute inset-0 blur-[15px] rounded-full opacity-60 pointer-events-none transition-opacity group-hover:opacity-100"
-            style={{ backgroundColor: colors.color }}
-          />
-        )}
-
-        {/* The Hexagon */}
+      {/* Ambient Glow for Earned Badges */}
+      {!dim && (
         <div 
-          className="w-[64px] h-[72px] relative flex items-center justify-center transition-all shadow-inner"
+          className="absolute inset-0 blur-xl rounded-2xl opacity-40 pointer-events-none transition-opacity group-hover:opacity-70 -z-10"
+          style={{ backgroundColor: colors.color }}
+        />
+      )}
+
+      {/* Icon/Image Container */}
+      <div className="relative mb-4">
+        <div 
+          className={`w-20 h-20 rounded-xl flex items-center justify-center text-4xl transition-all shadow-lg overflow-hidden ${
+            dim ? 'bg-black/60 border border-white/5' : 'border-2'
+          }`}
           style={{
-            clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-            background: dim ? 'rgba(0, 0, 0, 0.6)' : colors.bg,
-            border: dim ? '1px solid rgba(255,255,255,0.05)' : `1px solid ${colors.border}`
+            borderColor: dim ? undefined : colors.border,
+            backgroundColor: dim ? undefined : `${colors.bg}`,
+            filter: dim ? 'grayscale(100%) opacity(50%)' : hasImage ? 'none' : 'drop-shadow(0 4px 8px rgba(0,0,0,0.6))'
           }}
         >
-          <span 
-            className={`transition-all ${badge.icon.length > 1 ? 'text-2xl' : 'text-3xl'}`}
-            style={{ filter: dim ? 'grayscale(100%) opacity(40%)' : 'drop-shadow(0 4px 6px rgba(0,0,0,0.5))' }}
-          >
-            {badge.icon}
-          </span>
-
-          {/* Earned indicator dot */}
-          {badge.earned && (
-            <div 
-              className="absolute bottom-2 right-3 w-2.5 h-2.5 rounded-full border border-[#0A0A10] shadow-[0_0_8px_currentColor]"
-              style={{ backgroundColor: colors.color, color: colors.color }}
+          {hasImage ? (
+            <img 
+              src={badge.image_url} 
+              alt={badge.name}
+              className="w-full h-full object-cover"
+              style={{ filter: dim ? 'grayscale(100%) opacity(50%)' : 'none' }}
             />
+          ) : (
+            badge.icon
           )}
         </div>
-      </div>
 
-      <div className="flex flex-col items-center w-full">
-        {/* Badge name */}
-        <div 
-          className="text-[11px] font-black text-center leading-tight tracking-tight mb-1"
-          style={{ color: badge.earned ? colors.color : 'rgba(255,255,255,0.4)' }}
-        >
-          {badge.name}
-        </div>
-
-        {/* Tier label */}
-        <div 
-          className="text-[8px] text-center tracking-[2px] font-bold uppercase"
-          style={{ color: badge.earned ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.2)' }}
-        >
-          {badge.tier}
-        </div>
-
-        {/* Progress bar for unearned tiered badges */}
-        {!badge.earned && badge.progress !== undefined && (
-          <div className="w-full mt-2">
-            <div className="h-1 bg-black/80 border border-white/10 rounded-full overflow-hidden">
-              <div 
-                className="h-full rounded-full transition-all duration-1000 shadow-[0_0_10px_currentColor] opacity-70 group-hover:opacity-100"
-                style={{ width: `${badge.progress}%`, backgroundColor: colors.color, color: colors.color }}
-              />
-            </div>
-            <div className="text-[8px] color-white/30 text-center mt-1.5 uppercase tracking-widest font-black text-white/30 group-hover:text-white/50 transition-colors">
-              {badge.progressLabel}
-            </div>
+        {/* Tier Badge */}
+        {!dim && (
+          <div 
+            className="absolute -top-2 -right-2 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border shadow-lg"
+            style={{
+              backgroundColor: colors.color,
+              borderColor: colors.border,
+              color: '#000',
+            }}
+          >
+            {badge.tier}
           </div>
         )}
       </div>
+
+      {/* Badge Name */}
+      <div 
+        className="text-sm font-black text-center leading-tight tracking-tight mb-1 transition-colors"
+        style={{ color: badge.earned ? colors.color : 'rgba(255,255,255,0.3)' }}
+      >
+        {badge.name}
+      </div>
+
+      {/* Rarity */}
+      <div 
+        className="text-[9px] text-center tracking-[2px] font-bold uppercase mb-2"
+        style={{ color: badge.earned ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)' }}
+      >
+        {badge.rarity}
+      </div>
+
+      {/* Description */}
+      <div className="text-[10px] text-center text-white/40 leading-snug mb-3 min-h-[2.5rem] flex items-center">
+        {badge.desc}
+      </div>
+
+      {/* Progress Bar for Unearned Badges */}
+      {!badge.earned && badge.progress !== undefined && (
+        <div className="w-full space-y-2">
+          <div className="h-1.5 bg-black/80 border border-white/10 rounded-full overflow-hidden">
+            <div 
+              className="h-full rounded-full transition-all duration-1000 shadow-[0_0_10px_currentColor]"
+              style={{ 
+                width: `${badge.progress}%`, 
+                backgroundColor: colors.color,
+                boxShadow: `0 0 10px ${colors.color}`
+              }}
+            />
+          </div>
+          <div 
+            className="text-[9px] text-center uppercase tracking-widest font-black transition-colors"
+            style={{ color: badge.earned ? colors.color : 'rgba(255,255,255,0.3)' }}
+          >
+            {badge.progressLabel}
+          </div>
+        </div>
+      )}
+
+      {/* Earned Checkmark */}
+      {badge.earned && (
+        <div 
+          className="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center border-2 shadow-lg"
+          style={{
+            backgroundColor: colors.color,
+            borderColor: colors.border,
+            boxShadow: `0 0 15px ${colors.color}`
+          }}
+        >
+          <span className="text-black text-xs font-black">✓</span>
+        </div>
+      )}
     </div>
   )
 }
 
-// Compact chip badges for leaderboard rows
+// Compact badge chips for leaderboard rows
 export function BadgeChips({ badges }: { badges: Badge[] }) {
+  if (badges.length === 0) return null
+
   return (
     <div className="flex flex-wrap gap-2">
       {badges.map(badge => {
@@ -115,15 +169,15 @@ export function BadgeChips({ badges }: { badges: Badge[] }) {
         return (
           <div
             key={badge.key}
-            title={badge.name}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md backdrop-blur-md shadow-sm transition-transform hover:scale-105 cursor-help"
+            title={`${badge.name} - ${badge.desc}`}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg backdrop-blur-md shadow-md transition-all hover:scale-110 cursor-help border"
             style={{
               background: colors.bg,
               borderColor: colors.border,
-              borderWidth: '1px'
+              boxShadow: `0 0 10px ${colors.bg}`
             }}
           >
-            <span className="text-xs filter drop-shadow-sm">{badge.icon}</span>
+            <span className="text-sm filter drop-shadow-sm">{badge.icon}</span>
             <span 
               className="text-[9px] font-black tracking-widest uppercase drop-shadow-sm"
               style={{ color: colors.color }}
