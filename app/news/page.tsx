@@ -13,99 +13,101 @@ export default async function NewsPage() {
   const allNews = news || []
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#080818' }}>
-      <Navbar />
+    <div className="min-h-screen bg-[#040408] text-white flex flex-col font-sans relative overflow-hidden">
+      
+      {/* GLOBAL AMBIENT LIGHTING & GRID */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 casino-grid opacity-40"></div>
+        <div className="absolute top-[10%] left-[-10%] w-[50vw] h-[50vw] bg-purple-600/10 rounded-full blur-[150px] animate-float mix-blend-screen"></div>
+        <div className="absolute bottom-[20%] right-[-10%] w-[40vw] h-[40vw] bg-cyan-600/10 rounded-full blur-[150px] animate-float-delayed mix-blend-screen"></div>
+      </div>
 
-      {/* Header */}
-      <section style={{
-        background: '#0a0820',
-        padding: '48px 48px 40px',
-        borderBottom: '1px solid rgba(67,121,255,0.15)',
-      }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-          <div style={{
-            fontSize: '10px', color: '#4379FF', letterSpacing: '4px',
-            textTransform: 'uppercase', fontWeight: 700, marginBottom: '12px',
-            display: 'flex', alignItems: 'center', gap: '10px',
-          }}>
-            <span style={{ width: '28px', height: '1px', background: '#4379FF', display: 'inline-block' }} />
-            National Poker League
-          </div>
-          <h1 style={{ fontSize: '40px', fontWeight: 900, color: '#ffffff', letterSpacing: '-1px', marginBottom: '8px' }}>
-            News &amp; Announcements
-          </h1>
-          <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)' }}>
-            Latest updates from the National Poker League
-          </p>
-        </div>
-      </section>
+      <div className="relative z-10 flex flex-col min-h-screen">
+        <Navbar />
 
-      <main style={{ flex: 1, maxWidth: '900px', margin: '0 auto', width: '100%', padding: '48px 48px 64px' }}>
-        {allNews.length === 0 ? (
-          <div style={{
-            textAlign: 'center', padding: '80px 40px',
-            background: '#0d0d2a', border: '1px solid rgba(67,121,255,0.15)',
-            borderRadius: '8px',
-          }}>
-            <div style={{ fontSize: '32px', marginBottom: '12px' }}>📰</div>
-            <div style={{ fontSize: '16px', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>
-              No news posts yet — check back soon
+        {/* HEADER SECTION */}
+        <section className="relative bg-black/40 border-b border-white/10 pt-16 pb-12 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+          <div className="max-w-[1400px] mx-auto px-6 md:px-12">
+            <div className="flex items-center gap-4 mb-6">
+              <span className="h-[2px] w-8 bg-gradient-to-r from-transparent to-purple-500"></span>
+              <span className="text-purple-400 text-[10px] tracking-[5px] uppercase font-black">
+                National Poker League
+              </span>
             </div>
+            
+            <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase mb-4 drop-shadow-[0_0_20px_rgba(0,0,0,0.8)]">
+              The <span className="text-gold-gradient drop-shadow-[0_0_15px_rgba(212,175,55,0.4)]">Wire</span>
+            </h1>
+            <p className="text-white/50 text-sm md:text-base max-w-2xl font-medium mb-4">
+              The official dispatch for the National Poker League. Read the latest announcements, rule updates, and circuit news.
+            </p>
           </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {allNews.map((item, index) => (
-              <div key={item.id} style={{
-                padding: '36px 0',
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
-              }}>
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px',
-                }}>
-                  <span style={{
-                    fontSize: '10px', color: '#4379FF', letterSpacing: '2px',
-                    textTransform: 'uppercase', fontWeight: 700,
-                  }}>
-                    {new Date(item.published_at).toLocaleDateString('en-GB', {
-                      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-                    })}
-                  </span>
-                  {index === 0 && (
-                    <span style={{
-                      background: '#1F1A5A', color: '#4379FF',
-                      fontSize: '9px', padding: '3px 10px', borderRadius: '4px',
-                      letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 700,
-                      border: '1px solid rgba(67,121,255,0.3)',
-                    }}>
-                      Latest
-                    </span>
-                  )}
-                </div>
+        </section>
 
-                <h2 style={{
-                  fontSize: '24px', fontWeight: 900, color: '#ffffff',
-                  marginBottom: '12px', lineHeight: 1.3, letterSpacing: '-0.3px',
-                }}>
-                  {item.title}
-                </h2>
-
-                {item.content && (
-                  <p style={{
-                    fontSize: '15px', color: 'rgba(255,255,255,0.6)',
-                    lineHeight: 1.7, marginBottom: '16px',
-                  }}>
-                    {item.content}
-                  </p>
-                )}
-
-                {item.social_link && <SocialLink href={item.social_link} />}
+        {/* MAIN FEED */}
+        <main className="flex-1 max-w-[900px] mx-auto w-full px-6 md:px-12 py-16">
+          {allNews.length === 0 ? (
+            <div className="glass-panel p-16 text-center rounded-3xl border-dashed border-2 border-white/10 flex flex-col items-center justify-center">
+              <div className="text-4xl mb-4 opacity-50">📰</div>
+              <div className="text-white/40 font-bold uppercase tracking-widest text-sm">
+                No dispatches on the wire yet.
               </div>
-            ))}
-          </div>
-        )}
-      </main>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-10">
+              {allNews.map((item, index) => {
+                const isLatest = index === 0;
+                
+                return (
+                  <div key={item.id} className={`group relative glass-panel rounded-3xl p-8 md:p-10 overflow-hidden transition-all duration-500 ${isLatest ? 'border-purple-500/30 shadow-[0_10px_40px_rgba(168,85,247,0.1)]' : 'hover:border-white/20'}`}>
+                    
+                    {/* Glowing Accents */}
+                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 transition-colors duration-500 ${isLatest ? 'bg-gradient-to-b from-purple-500 to-cyan-500' : 'bg-white/10 group-hover:bg-purple-500/50'}`}></div>
+                    
+                    {isLatest && (
+                      <div className="absolute top-[-50%] right-[-10%] w-[100%] h-[200%] bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.05)_0%,transparent_50%)] animate-pulse pointer-events-none" />
+                    )}
 
-      <Footer />
+                    {/* Meta Bar */}
+                    <div className="flex flex-wrap items-center justify-between gap-4 mb-6 relative z-10">
+                      <span className="text-[10px] text-purple-400 tracking-[3px] uppercase font-black">
+                        {new Date(item.published_at).toLocaleDateString('en-GB', {
+                          weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+                        })}
+                      </span>
+                      
+                      {isLatest && (
+                        <span className="bg-purple-500/10 text-purple-400 border border-purple-500/40 text-[9px] tracking-[3px] uppercase px-4 py-1.5 rounded-full font-black shadow-[0_0_15px_rgba(168,85,247,0.3)] backdrop-blur-md">
+                          Latest Dispatch
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Content */}
+                    <div className="relative z-10">
+                      <h2 className="text-3xl md:text-4xl font-black text-white mb-4 leading-tight tracking-tight drop-shadow-md">
+                        {item.title}
+                      </h2>
+
+                      {item.content && (
+                        <p className="text-sm md:text-base text-white/60 leading-relaxed mb-8 font-medium">
+                          {item.content}
+                        </p>
+                      )}
+
+                      {/* Social Link CTA */}
+                      {item.social_link && <SocialLink href={item.social_link} />}
+                    </div>
+
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </main>
+
+        <Footer />
+      </div>
     </div>
   )
 }
@@ -116,16 +118,10 @@ function SocialLink({ href }: { href: string }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: '6px',
-        fontSize: '12px', color: '#4379FF', fontWeight: 700,
-        letterSpacing: '1px', textTransform: 'uppercase',
-        border: '1px solid rgba(67,121,255,0.3)',
-        padding: '8px 18px', borderRadius: '4px',
-        background: 'rgba(67,121,255,0.08)',
-      }}
+      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-cyan-400 bg-cyan-500/10 border border-cyan-400/30 hover:bg-cyan-500/20 hover:shadow-[0_0_20px_rgba(0,243,255,0.3)] hover:-translate-y-0.5 transition-all backdrop-blur-md"
     >
-      View social post ›
+      Read Dispatch 
+      <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
     </a>
   )
 }

@@ -20,54 +20,54 @@ export default async function HistoryPage() {
   const allSeasons = seasons || []
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#080818' }}>
-      <Navbar />
+    <div className="min-h-screen bg-[#040408] text-white flex flex-col font-sans relative overflow-hidden">
+      
+      {/* GLOBAL AMBIENT LIGHTING & GRID */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 casino-grid opacity-40"></div>
+        <div className="absolute top-[10%] left-[-10%] w-[50vw] h-[50vw] bg-cyan-600/10 rounded-full blur-[150px] animate-float mix-blend-screen"></div>
+        <div className="absolute bottom-[20%] right-[-10%] w-[40vw] h-[40vw] bg-purple-600/10 rounded-full blur-[150px] animate-float-delayed mix-blend-screen"></div>
+      </div>
 
-      {/* Header */}
-      <section style={{
-        background: '#0a0820',
-        padding: '48px 48px 40px',
-        borderBottom: '1px solid rgba(67,121,255,0.15)',
-      }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-          <div style={{
-            fontSize: '10px', color: '#4379FF', letterSpacing: '4px',
-            textTransform: 'uppercase', fontWeight: 700, marginBottom: '12px',
-            display: 'flex', alignItems: 'center', gap: '10px',
-          }}>
-            <span style={{ width: '28px', height: '1px', background: '#4379FF', display: 'inline-block' }} />
-            National Poker League
-          </div>
-          <h1 style={{ fontSize: '40px', fontWeight: 900, color: '#ffffff', letterSpacing: '-1px', marginBottom: '8px' }}>
-            Season History
-          </h1>
-          <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)' }}>
-            Past seasons and their final leaderboards
-          </p>
-        </div>
-      </section>
+      <div className="relative z-10 flex flex-col min-h-screen">
+        <Navbar />
 
-      <main style={{ flex: 1, maxWidth: '1400px', margin: '0 auto', width: '100%', padding: '48px 48px 64px' }}>
-        {allSeasons.length === 0 ? (
-          <div style={{
-            textAlign: 'center', padding: '80px 40px',
-            background: '#0d0d2a', border: '1px solid rgba(67,121,255,0.15)',
-            borderRadius: '8px',
-          }}>
-            <div style={{ fontSize: '16px', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>
-              No historical seasons yet
+        {/* HEADER SECTION */}
+        <section className="relative bg-black/40 border-b border-white/10 pt-16 pb-12 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+          <div className="max-w-[1400px] mx-auto px-6 md:px-12">
+            <div className="flex items-center gap-4 mb-6">
+              <span className="h-[2px] w-8 bg-gradient-to-r from-transparent to-cyan-400"></span>
+              <span className="text-cyan-400 text-[10px] tracking-[5px] uppercase font-black">
+                National Poker League
+              </span>
             </div>
+            
+            <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase mb-4 drop-shadow-[0_0_20px_rgba(0,0,0,0.8)]">
+              The <span className="text-gold-gradient drop-shadow-[0_0_15px_rgba(212,175,55,0.4)]">Archives</span>
+            </h1>
+            <p className="text-white/50 text-sm md:text-base max-w-2xl font-medium mb-4">
+              Explore the legacy of past seasons, review historical leaderboards, and access the complete vault of previous circuit results.
+            </p>
           </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {allSeasons.map(season => (
-              <SeasonCard key={season.id} season={season} />
-            ))}
-          </div>
-        )}
-      </main>
+        </section>
 
-      <Footer />
+        {/* MAIN CONTENT */}
+        <main className="flex-1 max-w-[1400px] mx-auto w-full px-6 md:px-12 py-16">
+          {allSeasons.length === 0 ? (
+            <div className="glass-panel p-16 text-center text-white/30 font-bold uppercase tracking-widest text-sm rounded-3xl border-dashed border-2 border-white/10">
+              No historical seasons in the vault yet.
+            </div>
+          ) : (
+            <div className="flex flex-col gap-8">
+              {allSeasons.map(season => (
+                <SeasonCard key={season.id} season={season} />
+              ))}
+            </div>
+          )}
+        </main>
+
+        <Footer />
+      </div>
     </div>
   )
 }
@@ -89,79 +89,84 @@ async function SeasonCard({ season }: { season: any }) {
   const ruleLabel = NPL_RULES[season.npl_rule] || season.npl_rule
 
   return (
-    <div style={{
-      background: '#0d0d2a',
-      border: `1px solid ${season.is_active ? 'rgba(67,121,255,0.4)' : 'rgba(67,121,255,0.15)'}`,
-      borderRadius: '8px', padding: '32px',
-      position: 'relative',
-    }}>
+    <div className={`group relative glass-panel rounded-3xl p-8 md:p-10 overflow-hidden transition-all duration-500 hover:-translate-y-1 ${
+      season.is_active 
+        ? 'border-[#D4AF37]/50 shadow-[0_15px_40px_rgba(212,175,55,0.15)] bg-gradient-to-br from-[#0A0A10] to-[#1A1500]' 
+        : 'hover:border-cyan-500/50 hover:shadow-[0_15px_40px_rgba(0,243,255,0.1)] bg-black/40'
+    }`}>
+      
+      {/* Background Glow Effects */}
+      <div className={`absolute left-0 top-0 bottom-0 w-1.5 transition-colors duration-500 ${
+        season.is_active ? 'bg-gradient-to-b from-[#D4AF37] to-[#FBF091]' : 'bg-white/10 group-hover:bg-gradient-to-b group-hover:from-cyan-400 group-hover:to-blue-600'
+      }`}></div>
       {season.is_active && (
-        <div style={{
-          position: 'absolute', top: '20px', right: '20px',
-          background: '#1F1A5A', color: '#4379FF',
-          fontSize: '9px', letterSpacing: '2px', textTransform: 'uppercase',
-          padding: '5px 12px', borderRadius: '4px', fontWeight: 700,
-          border: '1px solid rgba(67,121,255,0.4)',
-        }}>
+        <div className="absolute top-[-50%] right-[-10%] w-[100%] h-[200%] bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.05)_0%,transparent_50%)] animate-pulse pointer-events-none" />
+      )}
+
+      {/* Active Season Badge */}
+      {season.is_active && (
+        <div className="absolute top-6 right-6 md:top-8 md:right-8 bg-[#D4AF37]/10 text-[#FBF091] border border-[#D4AF37]/40 text-[9px] tracking-[3px] uppercase px-4 py-1.5 rounded-full font-black shadow-[0_0_15px_rgba(212,175,55,0.3)] backdrop-blur-md">
           Current Season
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '40px' }}>
-        {/* Year */}
-        <div style={{ flexShrink: 0 }}>
-          <div style={{
-            fontSize: '56px', fontWeight: 900, letterSpacing: '-2px', lineHeight: 1,
-            color: season.is_active ? '#ffffff' : 'rgba(255,255,255,0.35)',
-          }}>
+      <div className="flex flex-col md:flex-row md:items-center gap-8 md:gap-12 relative z-10">
+        
+        {/* Year & Title */}
+        <div className="flex-shrink-0 pt-6 md:pt-0">
+          <div className={`text-6xl md:text-7xl font-black italic tracking-tighter leading-none mb-2 transition-colors duration-500 ${
+            season.is_active ? 'text-gold-gradient drop-shadow-md' : 'text-white/20 group-hover:text-white/40'
+          }`}>
             {season.year}
           </div>
-          <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', marginTop: '6px', fontWeight: 600 }}>
+          <div className="text-sm text-white/60 font-bold uppercase tracking-widest">
             {season.name}
           </div>
         </div>
 
         {/* Divider */}
-        <div style={{ width: '1px', background: 'rgba(67,121,255,0.15)', alignSelf: 'stretch' }} />
+        <div className="hidden md:block w-[1px] h-24 bg-white/10 transition-colors group-hover:bg-white/20" />
+        <div className="md:hidden w-full h-[1px] bg-white/10" />
 
-        {/* Stats and links */}
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '24px' }}>
+        {/* Stats & Links */}
+        <div className="flex-1 flex flex-col justify-between">
+          
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
             {[
-              { label: 'Events', value: eventCount },
-              { label: 'Players', value: uniquePlayers },
-              { label: 'NPL Rule', value: ruleLabel },
-            ].map(stat => (
-              <div key={stat.label}>
-                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px', fontWeight: 700 }}>
+              { label: 'Events Played', value: eventCount },
+              { label: 'Active Players', value: uniquePlayers },
+              { label: 'Rule Set', value: ruleLabel, textClass: 'text-sm' },
+            ].map((stat, idx) => (
+              <div key={stat.label} className={idx === 2 ? 'sm:col-span-1' : ''}>
+                <div className="text-[10px] text-white/40 tracking-[2px] uppercase font-bold mb-1.5">
                   {stat.label}
                 </div>
-                <div style={{ fontSize: '15px', color: '#ffffff', fontWeight: 700 }}>
+                <div className={`font-black text-white ${stat.textClass || 'text-2xl'}`}>
                   {stat.value}
                 </div>
               </div>
             ))}
           </div>
 
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <Link href={`/leaderboard?season=${season.id}`} style={{
-              fontSize: '11px', letterSpacing: '1.5px', textTransform: 'uppercase',
-              color: '#ffffff', fontWeight: 700,
-              background: '#4379FF',
-              padding: '10px 20px', borderRadius: '4px',
-            }}>
+          <div className="flex flex-wrap gap-4">
+            <Link 
+              href={`/leaderboard?season=${season.id}`} 
+              className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg ${
+                season.is_active 
+                  ? 'bg-gradient-to-r from-[#D4AF37] to-[#8B6914] text-black hover:scale-105 hover:shadow-[0_0_20px_rgba(212,175,55,0.4)]' 
+                  : 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white hover:scale-105 hover:shadow-[0_0_20px_rgba(0,243,255,0.3)]'
+              }`}
+            >
               View Leaderboard
             </Link>
-            <Link href={`/events?season=${season.id}`} style={{
-              fontSize: '11px', letterSpacing: '1.5px', textTransform: 'uppercase',
-              color: 'rgba(255,255,255,0.6)', fontWeight: 600,
-              background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.15)',
-              padding: '10px 20px', borderRadius: '4px',
-            }}>
+            <Link 
+              href={`/events?season=${season.id}`} 
+              className="px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/60 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-all backdrop-blur-md"
+            >
               View Events
             </Link>
           </div>
+          
         </div>
       </div>
     </div>

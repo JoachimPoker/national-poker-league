@@ -7,67 +7,47 @@ import LeaderboardClient from './LeaderboardClient'
 export const revalidate = 300
 
 export default async function LeaderboardPage() {
-  const { data: season } = await supabase
-    .from('seasons')
-    .select('*')
-    .eq('is_active', true)
-    .single()
-
+  // Fetch current active season
+  const { data: season } = await supabase.from('seasons').select('*').eq('is_active', true).single()
   const seasonId = season?.id || 1
 
-  const [npl, hr, lr, prizes] = await Promise.all([
+  // Fetch all leaderboards concurrently
+  const [nplBoard, hrBoard, lrBoard] = await Promise.all([
     getNPLLeaderboard(seasonId),
     getHighRollerLeaderboard(seasonId),
     getLowRollerLeaderboard(seasonId),
-    supabase
-      .from('season_prizes')
-      .select('*')
-      .eq('season_id', seasonId)
-      .order('league')
-      .order('position_from'),
   ])
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#080818' }}>
-      <Navbar />
+    <div className="min-h-screen bg-[#040408] text-white flex flex-col font-sans relative overflow-hidden">
+      
+      {/* GLOBAL AMBIENT LIGHTING & GRID */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 casino-grid opacity-40"></div>
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-cyan-600/20 rounded-full blur-[150px] animate-float mix-blend-screen"></div>
+        <div className="absolute bottom-[20%] right-[-10%] w-[40vw] h-[40vw] bg-purple-600/20 rounded-full blur-[150px] animate-float-delayed mix-blend-screen"></div>
+      </div>
 
-      {/* Header */}
-      <section style={{
-        background: '#0a0820',
-        padding: '48px 48px 40px',
-        borderBottom: '1px solid rgba(67,121,255,0.15)',
-      }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-          <div style={{
-            fontSize: '10px', color: '#4379FF', letterSpacing: '4px',
-            textTransform: 'uppercase', fontWeight: 700, marginBottom: '12px',
-            display: 'flex', alignItems: 'center', gap: '10px',
-          }}>
-            <span style={{ width: '28px', height: '1px', background: '#4379FF', display: 'inline-block' }} />
-            {season?.name || '2026 Season'}
+      <div className="relative z-10 flex flex-col min-h-screen">
+        <Navbar />
+
+        <main className="flex-1 max-w-[1200px] mx-auto w-full px-6 md:px-12 py-16">
+          {/* Header */}
+          <div className="text-center mb-16">
+            <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase mb-4 drop-shadow-[0_0_20px_rgba(0,0,0,0.8)]">
+              The <span className="text-gold-gradient drop-shadow-[0_0_15px_rgba(212,175,55,0.4)]">Vault</span>
+            </h1>
+            <p className="text-white/50 text-sm md:text-base max-w-2xl mx-auto font-medium">
+              Official live standings for the {season?.name || '2026 Season'}.
+            </p>
           </div>
-          <h1 style={{
-            fontSize: '40px', fontWeight: 900, color: '#ffffff',
-            letterSpacing: '-1px', marginBottom: '8px',
-          }}>
-            Season Leaderboards
-          </h1>
-          <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)' }}>
-            Live standings across all three leagues — updated every time a new file is uploaded
-          </p>
-        </div>
-      </section>
 
-      <main style={{ flex: 1, maxWidth: '1400px', margin: '0 auto', width: '100%', padding: '40px 48px 64px' }}>
-        <LeaderboardClient
-          npl={npl}
-          hr={hr}
-          lr={lr}
-          prizes={prizes.data || []}
-        />
-      </main>
-
-      <Footer />
+          {/* Interactive Client List */}
+          <LeaderboardClient npl={nplBoard} hr={hrBoard} lr={lrBoard} />
+        </main>
+        
+        <Footer />
+      </div>
     </div>
   )
 }

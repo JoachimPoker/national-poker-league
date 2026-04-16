@@ -5,16 +5,13 @@ export default function BadgeGrid({ badges }: { badges: Badge[] }) {
   const categories = [...new Set(badges.map(b => b.category))]
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className="flex flex-col gap-8">
       {categories.map(cat => (
-        <div key={cat}>
-          <div style={{
-            fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.3)',
-            letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '12px',
-          }}>
+        <div key={cat} className="relative">
+          <div className="text-[10px] font-black text-cyan-400/80 tracking-[4px] uppercase mb-5 border-b border-white/10 pb-2 drop-shadow-[0_0_8px_rgba(34,211,238,0.3)]">
             {cat}
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+          <div className="flex flex-wrap gap-6">
             {badges.filter(b => b.category === cat).map(badge => (
               <BadgeHex key={badge.key} badge={badge} />
             ))}
@@ -31,74 +28,80 @@ function BadgeHex({ badge }: { badge: Badge }) {
 
   return (
     <div
-      style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        gap: '8px', width: '88px', opacity: dim ? 0.35 : 1,
-        cursor: 'default',
-      }}
+      className={`group flex flex-col items-center gap-2.5 w-[90px] relative transition-all duration-500 ${
+        dim ? 'opacity-50 hover:opacity-80' : 'opacity-100 hover:-translate-y-1'
+      }`}
       title={badge.earned ? badge.desc : `${badge.desc} — not yet earned`}
     >
-      {/* Hexagon shape */}
-      <div style={{
-        width: '60px', height: '68px', position: 'relative',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-        background: dim ? 'rgba(255,255,255,0.05)' : colors.bg,
-      }}>
-        <span style={{
-          fontSize: badge.icon.length > 1 ? '20px' : '24px',
-          filter: dim ? 'grayscale(1)' : 'none',
-        }}>
-          {badge.icon}
-        </span>
+      {/* Hexagon shape & Glow */}
+      <div className="relative flex items-center justify-center cursor-help">
+        
+        {/* Ambient Glow for Earned Badges */}
+        {!dim && (
+          <div 
+            className="absolute inset-0 blur-[15px] rounded-full opacity-60 pointer-events-none transition-opacity group-hover:opacity-100"
+            style={{ backgroundColor: colors.color }}
+          />
+        )}
 
-        {/* Earned indicator dot */}
-        {badge.earned && (
-          <div style={{
-            position: 'absolute', bottom: '10px', right: '14px',
-            width: '8px', height: '8px', borderRadius: '50%',
-            background: colors.color,
-          }} />
+        {/* The Hexagon */}
+        <div 
+          className="w-[64px] h-[72px] relative flex items-center justify-center transition-all shadow-inner"
+          style={{
+            clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+            background: dim ? 'rgba(0, 0, 0, 0.6)' : colors.bg,
+            border: dim ? '1px solid rgba(255,255,255,0.05)' : `1px solid ${colors.border}`
+          }}
+        >
+          <span 
+            className={`transition-all ${badge.icon.length > 1 ? 'text-2xl' : 'text-3xl'}`}
+            style={{ filter: dim ? 'grayscale(100%) opacity(40%)' : 'drop-shadow(0 4px 6px rgba(0,0,0,0.5))' }}
+          >
+            {badge.icon}
+          </span>
+
+          {/* Earned indicator dot */}
+          {badge.earned && (
+            <div 
+              className="absolute bottom-2 right-3 w-2.5 h-2.5 rounded-full border border-[#0A0A10] shadow-[0_0_8px_currentColor]"
+              style={{ backgroundColor: colors.color, color: colors.color }}
+            />
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-col items-center w-full">
+        {/* Badge name */}
+        <div 
+          className="text-[11px] font-black text-center leading-tight tracking-tight mb-1"
+          style={{ color: badge.earned ? colors.color : 'rgba(255,255,255,0.4)' }}
+        >
+          {badge.name}
+        </div>
+
+        {/* Tier label */}
+        <div 
+          className="text-[8px] text-center tracking-[2px] font-bold uppercase"
+          style={{ color: badge.earned ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.2)' }}
+        >
+          {badge.tier}
+        </div>
+
+        {/* Progress bar for unearned tiered badges */}
+        {!badge.earned && badge.progress !== undefined && (
+          <div className="w-full mt-2">
+            <div className="h-1 bg-black/80 border border-white/10 rounded-full overflow-hidden">
+              <div 
+                className="h-full rounded-full transition-all duration-1000 shadow-[0_0_10px_currentColor] opacity-70 group-hover:opacity-100"
+                style={{ width: `${badge.progress}%`, backgroundColor: colors.color, color: colors.color }}
+              />
+            </div>
+            <div className="text-[8px] color-white/30 text-center mt-1.5 uppercase tracking-widest font-black text-white/30 group-hover:text-white/50 transition-colors">
+              {badge.progressLabel}
+            </div>
+          </div>
         )}
       </div>
-
-      {/* Badge name */}
-      <div style={{
-        fontSize: '10px', fontWeight: 700, textAlign: 'center', lineHeight: 1.3,
-        color: badge.earned ? colors.color : 'rgba(255,255,255,0.25)',
-      }}>
-        {badge.name}
-      </div>
-
-      {/* Tier label */}
-      <div style={{
-        fontSize: '9px', textAlign: 'center', letterSpacing: '1px',
-        textTransform: 'uppercase',
-        color: badge.earned ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.15)',
-      }}>
-        {badge.tier}
-      </div>
-
-      {/* Progress bar for unearned tiered badges */}
-      {!badge.earned && badge.progress !== undefined && (
-        <div style={{ width: '100%' }}>
-          <div style={{
-            height: '3px', background: 'rgba(255,255,255,0.08)',
-            borderRadius: '2px', overflow: 'hidden',
-          }}>
-            <div style={{
-              height: '100%', width: `${badge.progress}%`,
-              background: colors.color, borderRadius: '2px', opacity: 0.6,
-            }} />
-          </div>
-          <div style={{
-            fontSize: '9px', color: 'rgba(255,255,255,0.2)',
-            textAlign: 'center', marginTop: '3px',
-          }}>
-            {badge.progressLabel}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -106,24 +109,25 @@ function BadgeHex({ badge }: { badge: Badge }) {
 // Compact chip badges for leaderboard rows
 export function BadgeChips({ badges }: { badges: Badge[] }) {
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+    <div className="flex flex-wrap gap-2">
       {badges.map(badge => {
         const colors = TIER_COLORS[badge.tier]
         return (
           <div
             key={badge.key}
             title={badge.name}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md backdrop-blur-md shadow-sm transition-transform hover:scale-105 cursor-help"
             style={{
-              display: 'inline-flex', alignItems: 'center', gap: '5px',
-              padding: '4px 9px', borderRadius: '4px',
-              background: colors.bg, border: `1px solid ${colors.border}`,
+              background: colors.bg,
+              borderColor: colors.border,
+              borderWidth: '1px'
             }}
           >
-            <span style={{ fontSize: '12px' }}>{badge.icon}</span>
-            <span style={{
-              fontSize: '10px', fontWeight: 700,
-              color: colors.color, letterSpacing: '0.3px',
-            }}>
+            <span className="text-xs filter drop-shadow-sm">{badge.icon}</span>
+            <span 
+              className="text-[9px] font-black tracking-widest uppercase drop-shadow-sm"
+              style={{ color: colors.color }}
+            >
               {badge.name}
             </span>
           </div>

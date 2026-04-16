@@ -3,228 +3,158 @@ import { useState } from 'react'
 import Link from 'next/link'
 
 const LEAGUES = [
-  { key: 'npl', label: 'NPL Main', activeClass: 'lb-tab-active-npl' },
-  { key: 'hr',  label: 'High Roller', activeClass: 'lb-tab-active-hr' },
-  { key: 'lr',  label: 'Low Roller', activeClass: 'lb-tab-active-lr' },
+  { key: 'npl', label: 'NPL Main', activeClass: 'lb-tab-active-npl', color: 'from-blue-600 to-cyan-400' },
+  { key: 'hr',  label: 'High Roller', activeClass: 'lb-tab-active-hr', color: 'from-amber-500 to-yellow-300' },
+  { key: 'lr',  label: 'Low Roller', activeClass: 'lb-tab-active-lr', color: 'from-green-600 to-emerald-400' },
 ]
 
-function getBadgeChips(entry: any, league: string) {
-  const chips: { label: string; cls: string }[] = []
-  if (league === 'npl' && entry.rank === 1) chips.push({ label: 'NPL Champion', cls: 'badge-chip badge-chip-gold' })
-  if (league === 'hr'  && entry.rank === 1) chips.push({ label: 'HR Champion',  cls: 'badge-chip badge-chip-gold' })
-  if (league === 'lr'  && entry.rank === 1) chips.push({ label: 'LR Champion',  cls: 'badge-chip badge-chip-green' })
-  if (league === 'npl' && entry.rank <= 3 && entry.rank > 1) chips.push({ label: 'Podium', cls: 'badge-chip badge-chip-blue' })
-  if (league === 'npl' && entry.rank <= 10 && entry.rank > 3) chips.push({ label: 'Top 10', cls: 'badge-chip badge-chip-blue' })
-  return chips
-}
-
-export default function HomeLeaderboard({ npl, hr, lr }: {
-  npl: any[]
-  hr: any[]
-  lr: any[]
-}) {
+export default function HomeLeaderboard({ npl, hr, lr }: { npl: any[], hr: any[], lr: any[] }) {
   const [active, setActive] = useState('npl')
   const [search, setSearch] = useState('')
 
   const rawData = active === 'npl' ? npl : active === 'hr' ? hr : lr
-
   const data = search.trim()
-    ? rawData.filter(e =>
-        e.gdpr && e.full_name?.toLowerCase().includes(search.toLowerCase())
-      )
+    ? rawData.filter(e => e.gdpr && e.full_name?.toLowerCase().includes(search.toLowerCase()))
     : rawData
 
-  const accentColor =
-    active === 'hr' ? 'var(--hr-color)' :
-    active === 'lr' ? 'var(--lr-color)' :
-    'var(--blue)'
+  const topThree = data.slice(0, 3)
+  const theRest = data.slice(3)
+  const activeGradient = LEAGUES.find(l => l.key === active)?.color || 'from-gray-500 to-gray-400'
 
   return (
-    <div>
-      {/* Tab bar */}
-      <div className="lb-tab-bar" style={{ marginBottom: '0' }}>
-        {LEAGUES.map(tab => {
-          const isActive = active === tab.key
-          return (
+    <div className="w-full">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+        <div className="lb-tab-bar !mb-0 p-1.5 bg-black/40 rounded-[16px] border border-white/5 backdrop-blur-md">
+          {LEAGUES.map(tab => (
             <button
               key={tab.key}
-              className={`lb-tab${isActive ? ` ${tab.activeClass}` : ''}`}
+              className={`lb-tab border-0 ${active === tab.key ? tab.activeClass : 'bg-transparent'}`}
               onClick={() => { setActive(tab.key); setSearch('') }}
             >
               {tab.label}
             </button>
-          )
-        })}
-      </div>
-
-      {/* Search */}
-      <input
-        className="lb-search"
-        placeholder="Search players…"
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-      />
-
-      {/* Table */}
-      <div style={{
-        borderRadius: '8px',
-        overflow: 'hidden',
-        border: '1px solid rgba(67,121,255,0.15)',
-        marginTop: '10px',
-      }}>
-        {/* Header */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '52px 1fr auto 100px',
-          padding: '11px 20px',
-          background: '#0d0d2a',
-          borderBottom: '1px solid rgba(67,121,255,0.15)',
-        }}>
-          {[
-            { label: 'Rank', right: false },
-            { label: 'Player', right: false },
-            { label: '', right: false },
-            { label: 'Points', right: true },
-          ].map((col, i) => (
-            <div key={i} style={{
-              fontSize: '10px',
-              letterSpacing: '2px',
-              textTransform: 'uppercase',
-              color: 'rgba(255,255,255,0.25)',
-              textAlign: col.right ? 'right' : 'left',
-            }}>
-              {col.label}
-            </div>
           ))}
         </div>
+        <input
+          className="lb-search !mb-0 max-w-xs"
+          placeholder="Search contenders…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+      </div>
 
-        {/* Rows */}
-        {data.length === 0 ? (
-          <div style={{
-            padding: '40px 20px',
-            textAlign: 'center',
-            fontSize: '13px',
-            color: 'rgba(255,255,255,0.25)',
-            fontStyle: 'italic',
-            background: '#080818',
-          }}>
-            {search ? 'No players match your search' : 'No results for this league yet'}
-          </div>
-        ) : (
-          data.map((entry, index) => {
-            const rank = index + 1
-            const isFirst = rank === 1
-            const chips = getBadgeChips({ ...entry, rank }, active)
-
-            return (
-              <div
-                key={entry.player_id}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '52px 1fr auto 100px',
-                  padding: '13px 20px',
-                  borderBottom: '1px solid rgba(255,255,255,0.04)',
-                  alignItems: 'center',
-                  gap: '8px',
-                  background: isFirst
-                    ? 'rgba(197,160,82,0.06)'
-                    : index % 2 === 0 ? '#080818' : '#0a0a20',
-                  position: 'relative',
-                  transition: 'background 0.15s ease',
-                }}
-              >
-                {/* Gold left border on #1 */}
-                {isFirst && (
-                  <div style={{
-                    position: 'absolute',
-                    left: 0, top: 0, bottom: 0,
-                    width: '3px',
-                    background: 'linear-gradient(180deg, #FBF091, #C5A052)',
-                    borderRadius: '0 0 0 8px',
-                  }} />
-                )}
-
-                {/* Rank */}
-                <div style={{
-                  fontFamily: 'var(--font-mono, monospace)',
-                  fontSize: rank <= 3 ? '14px' : '12px',
-                  fontWeight: 700,
-                  color: isFirst
-                    ? '#FBF091'
-                    : rank === 2 ? 'rgba(255,255,255,0.55)'
-                    : rank === 3 ? '#9a8060'
-                    : 'rgba(255,255,255,0.22)',
-                }}>
-                  {String(rank).padStart(2, '0')}
-                </div>
-
-                {/* Player name + avatar */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                  <div style={{
-                    width: '34px', height: '34px',
-                    borderRadius: '50%', flexShrink: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '11px', fontWeight: 700,
-                    background: isFirst
-                      ? 'rgba(197,160,82,0.15)'
-                      : 'rgba(67,121,255,0.12)',
-                    color: isFirst ? '#FBF091' : accentColor,
-                    border: `1px solid ${isFirst ? 'rgba(197,160,82,0.35)' : 'rgba(67,121,255,0.3)'}`,
-                  }}>
-                    {entry.gdpr
-                      ? entry.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)
-                      : '—'}
-                  </div>
-                  <div style={{ minWidth: 0 }}>
-                    {entry.gdpr ? (
-                      <Link
-                        href={`/players/${entry.player_id}`}
-                        style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff' }}
-                      >
-                        {entry.full_name}
-                      </Link>
-                    ) : (
-                      <span style={{
-                        fontSize: '14px',
-                        color: 'rgba(255,255,255,0.22)',
-                        fontStyle: 'italic',
-                      }}>
-                        Anonymous Player
-                      </span>
+      {data.length === 0 ? (
+        <div className="glass-panel p-16 text-center text-white/40 font-bold uppercase tracking-widest text-sm rounded-3xl mb-12 border-dashed border-2 border-white/10">
+          No records found in the vault.
+        </div>
+      ) : (
+        <>
+          {/* Top 3 Power Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 items-end">
+            {topThree.map((entry, idx) => {
+              const rank = idx + 1;
+              const isFirst = rank === 1;
+              
+              return (
+                <div 
+                  key={entry.player_id} 
+                  className={`relative group rounded-[28px] transition-all duration-500 ${
+                    isFirst 
+                      ? 'p-[2px] bg-gradient-to-b from-[#D4AF37] via-[#FBF091] to-transparent lg:-translate-y-4 shadow-[0_20px_50px_rgba(212,175,55,0.2)] hover:shadow-[0_20px_60px_rgba(212,175,55,0.35)]' 
+                      : 'p-[1px] bg-white/10 hover:bg-white/20 hover:-translate-y-2'
+                  }`}
+                >
+                  <div className={`bg-[#0A0A10] rounded-[26px] flex flex-col justify-between relative overflow-hidden h-full ${
+                    isFirst ? 'p-10 min-h-[300px]' : 'p-8 min-h-[260px]'
+                  }`}>
+                    {/* Glowing Core for #1 */}
+                    {isFirst && (
+                      <div className="absolute top-[-50%] right-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.15)_0%,transparent_50%)] animate-pulse pointer-events-none" />
                     )}
-                    <div style={{
-                      fontSize: '11px',
-                      color: 'rgba(255,255,255,0.3)',
-                      marginTop: '1px',
-                      fontFamily: 'var(--font-mono, monospace)',
-                    }}>
-                      {entry.result_count} {entry.result_count === 1 ? 'result' : 'results'}
+                    
+                    <div className="relative z-10">
+                      <div className="flex justify-between items-start mb-6">
+                        <span className={`font-black italic drop-shadow-lg ${isFirst ? 'text-7xl text-gold-gradient' : 'text-5xl text-white/20'}`}>
+                          0{rank}
+                        </span>
+                        {isFirst && (
+                          <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#8B6914] flex items-center justify-center text-xl shadow-[0_0_20px_rgba(212,175,55,0.6)] border-2 border-[#FBF091]">
+                            👑
+                          </div>
+                        )}
+                      </div>
+                      
+                      {entry.gdpr ? (
+                        <Link href={`/players/${entry.player_id}`} className="block">
+                          <h4 className={`${isFirst ? 'text-3xl' : 'text-xl'} font-black mb-2 text-white group-hover:text-cyan-400 transition-colors drop-shadow-md`}>{entry.full_name}</h4>
+                        </Link>
+                      ) : (
+                        <h4 className={`${isFirst ? 'text-3xl' : 'text-xl'} font-black mb-2 text-white/40 italic`}>Anonymous</h4>
+                      )}
+                      
+                      {/* Vibrant Badges */}
+                      <div className="flex gap-2 mb-8 mt-2">
+                         <span className="px-3 py-1 rounded-md bg-white/5 border border-white/10 text-[9px] uppercase tracking-widest font-bold text-white/60">
+                           {entry.result_count} Events
+                         </span>
+                         {isFirst && (
+                           <span className="px-3 py-1 rounded-md bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[9px] uppercase tracking-widest font-bold text-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.2)]">
+                             Leader
+                           </span>
+                         )}
+                      </div>
+                    </div>
+
+                    <div className="relative z-10">
+                      <div className={`font-black font-mono tracking-tight ${isFirst ? 'text-5xl text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'text-3xl text-white/90'}`}>
+                        {entry.total_points.toFixed(2)} <span className="text-sm text-white/30 font-sans tracking-widest uppercase">PTS</span>
+                      </div>
+                      
+                      {/* Neon Progress Bar */}
+                      <div className="h-[4px] w-full bg-black mt-5 relative overflow-hidden rounded-full shadow-inner">
+                        <div className={`absolute inset-0 bg-gradient-to-r ${isFirst ? 'from-[#D4AF37] via-[#FBF091] to-[#D4AF37] animate-shine' : activeGradient}`} style={{ width: isFirst ? '100%' : rank === 2 ? '80%' : '65%' }}></div>
+                      </div>
                     </div>
                   </div>
                 </div>
+              )
+            })}
+          </div>
 
-                {/* Badge chips */}
-                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                  {chips.map(chip => (
-                    <span key={chip.label} className={chip.cls}>{chip.label}</span>
-                  ))}
-                </div>
-
-                {/* Points */}
-                <div style={{
-                  fontFamily: 'var(--font-mono, monospace)',
-                  fontSize: isFirst ? '17px' : '15px',
-                  fontWeight: 700,
-                  textAlign: 'right',
-                  color: isFirst ? '#FBF091' : '#ffffff',
-                }}>
-                  {entry.total_points.toFixed(2)}
-                </div>
+          {/* The Rest of the Pack */}
+          {theRest.length > 0 && (
+            <div className="glass-panel rounded-3xl overflow-hidden mb-12 border-t border-t-white/10 shadow-2xl">
+              <div className="bg-black/50 backdrop-blur-xl">
+                {theRest.map((entry, idx) => (
+                  <div key={entry.player_id} className="group flex items-center justify-between p-5 border-b border-white/5 last:border-0 hover:bg-gradient-to-r hover:from-white/5 hover:to-transparent transition-all relative">
+                    {/* Hover Glow Edge */}
+                    <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${activeGradient} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
+                    
+                    <div className="flex items-center gap-6 pl-2">
+                      <span className="text-white/20 font-black italic text-xl w-8 text-right group-hover:text-white/50 transition-colors">
+                        {String(idx + 4).padStart(2, '0')}
+                      </span>
+                      {entry.gdpr ? (
+                        <Link href={`/players/${entry.player_id}`} className="font-bold text-[15px] text-white/80 group-hover:text-white group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.5)] transition-all">
+                          {entry.full_name}
+                        </Link>
+                      ) : (
+                        <span className="font-bold text-[15px] text-white/40 italic">Anonymous Player</span>
+                      )}
+                    </div>
+                    <div className="text-right flex items-center gap-4">
+                      <span className="text-[10px] text-white/30 uppercase tracking-widest font-bold hidden md:inline-block">{entry.result_count} Events</span>
+                      <span className="font-mono font-bold text-white text-lg bg-black/40 px-4 py-1.5 rounded-lg border border-white/5 group-hover:border-white/20 transition-colors">
+                        {entry.total_points.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
-            )
-          })
-        )}
-      </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }

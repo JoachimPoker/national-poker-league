@@ -8,373 +8,165 @@ import Link from 'next/link'
 export const revalidate = 300
 
 export default async function HomePage() {
-  const { data: season } = await supabase
-    .from('seasons')
-    .select('*')
-    .eq('is_active', true)
-    .single()
-
+  const { data: season } = await supabase.from('seasons').select('*').eq('is_active', true).single()
   const seasonId = season?.id || 1
 
-  const [nplBoard, hrBoard, lrBoard, eventsRes, newsRes, prizesRes] = await Promise.all([
+  const [nplBoard, hrBoard, lrBoard, eventsRes, newsRes] = await Promise.all([
     getNPLLeaderboard(seasonId),
     getHighRollerLeaderboard(seasonId),
     getLowRollerLeaderboard(seasonId),
-    supabase
-      .from('events')
-      .select('*')
-      .eq('season_id', seasonId)
-      .order('start_date', { ascending: false })
-      .limit(5),
-    supabase
-      .from('news')
-      .select('*')
-      .order('published_at', { ascending: false })
-      .limit(3),
-    supabase
-      .from('season_prizes')
-      .select('*')
-      .eq('season_id', seasonId)
-      .eq('league', 'npl')
-      .order('position_from'),
+    supabase.from('events').select('*').eq('season_id', seasonId).order('start_date', { ascending: false }).limit(4),
+    supabase.from('news').select('*').order('published_at', { ascending: false }).limit(4),
   ])
 
   const events = eventsRes.data || []
   const news = newsRes.data || []
-  const prizes = prizesRes.data || []
-
-  const { count: playerCount } = await supabase
-    .from('players')
-    .select('*', { count: 'exact', head: true })
-
-  const { count: eventCount } = await supabase
-    .from('events')
-    .select('*', { count: 'exact', head: true })
-    .eq('season_id', seasonId)
-
-  const { data: prizeRows } = await supabase
-    .from('results')
-    .select('prize_amount')
-    .eq('season_id', seasonId)
-
-  const totalPrizeMoney = prizeRows?.reduce((sum, r) => sum + (r.prize_amount || 0), 0) || 0
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#080818' }}>
-      <Navbar />
+    <div className="min-h-screen bg-[#040408] text-white flex flex-col font-sans relative overflow-hidden">
+      
+      {/* GLOBAL AMBIENT LIGHTING & GRID */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 casino-grid opacity-40"></div>
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-blue-600/20 rounded-full blur-[150px] animate-float mix-blend-screen"></div>
+        <div className="absolute bottom-[20%] right-[-10%] w-[40vw] h-[40vw] bg-purple-600/20 rounded-full blur-[150px] animate-float-delayed mix-blend-screen"></div>
+      </div>
 
-      {/* HERO */}
-      <section style={{
-        position: 'relative',
-        minHeight: '500px',
-        display: 'flex',
-        alignItems: 'center',
-        overflow: 'hidden',
-      }}>
-        <div style={{
-          position: 'absolute', inset: 0,
-          backgroundImage: 'url(/hero.jpg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center 35%',
-        }} />
-        <div style={{
-          position: 'absolute', inset: 0,
-          background: 'linear-gradient(90deg, rgba(8,8,24,0.96) 0%, rgba(8,8,24,0.88) 40%, rgba(8,8,24,0.55) 70%, rgba(8,8,24,0.2) 100%)',
-        }} />
-        <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0, height: '140px',
-          background: 'linear-gradient(to bottom, transparent, #080818)',
-        }} />
+      <div className="relative z-10 flex flex-col min-h-screen">
+        <Navbar />
 
-        <div style={{
-          position: 'relative', width: '100%',
-          maxWidth: '1400px', margin: '0 auto',
-          padding: '72px 48px',
-        }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: '8px',
-            background: 'rgba(67,121,255,0.12)',
-            border: '1px solid rgba(67,121,255,0.3)',
-            borderRadius: '4px', padding: '6px 14px', marginBottom: '24px',
-          }}>
-            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4379FF' }} />
-            <span style={{ fontSize: '10px', color: '#4379FF', letterSpacing: '2px', textTransform: 'uppercase', fontWeight: 700 }}>
-              {season?.name || '2026 Season'} · Week 12 · Live
-            </span>
+        {/* VIBRANT HERO SECTION - Image Restored */}
+        <section className="relative min-h-[550px] flex items-center justify-center border-b border-white/10 mb-12 shadow-[0_10px_50px_rgba(0,0,0,0.5)]">
+          
+          {/* Restored Hero Image Background with Vignette */}
+          <div className="absolute inset-0 z-0">
+            <div className="absolute inset-0 bg-[url(/hero.jpg)] bg-cover bg-[center_35%] opacity-50" />
+            {/* Top to Bottom fade */}
+            <div className="absolute inset-0 bg-gradient-to-b from-[#040408]/90 via-[#040408]/20 to-[#040408]" />
+            {/* Side to Side fade for framing */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#040408]/80 via-transparent to-[#040408]/80" />
           </div>
 
-          <h1 style={{
-            fontSize: '72px', fontWeight: 900, color: '#ffffff',
-            lineHeight: 1, marginBottom: '16px', letterSpacing: '-2px',
-            textTransform: 'uppercase',
-          }}>
-            Where{' '}
-            <span style={{
-              background: 'linear-gradient(90deg, #C5A052, #FBF091, #C5A052)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}>
-              Champions
-            </span>
-            <br />Are Made
-          </h1>
+          {/* Intense Hero Center Glow overlaying the image */}
+          <div className="absolute z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[300px] bg-gradient-to-r from-blue-600/40 via-cyan-400/30 to-purple-600/40 blur-[100px] pointer-events-none mix-blend-screen" />
 
-          <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.6)', marginBottom: '40px', maxWidth: '460px' }}>
-            Top 20 results count · +2 pts per additional cash · 15 venues across the UK
-          </p>
-
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '56px' }}>
-            <Link href="/leaderboard" style={{
-              background: '#4379FF', color: '#ffffff', fontWeight: 700,
-              fontSize: '11px', letterSpacing: '1.5px', textTransform: 'uppercase',
-              padding: '13px 28px', borderRadius: '4px', textDecoration: 'none',
-            }}>
-              View Leaderboard
-            </Link>
-            <Link href="/events" style={{
-              background: 'transparent', color: '#ffffff', fontWeight: 600,
-              fontSize: '11px', letterSpacing: '1.5px', textTransform: 'uppercase',
-              padding: '13px 28px', borderRadius: '4px', textDecoration: 'none',
-              border: '1px solid rgba(255,255,255,0.25)',
-            }}>
-              View Events
-            </Link>
-          </div>
-
-          <div style={{ display: 'flex' }}>
-            {[
-              { value: playerCount?.toLocaleString() || '0', label: 'Active Players' },
-              { value: eventCount?.toString() || '0', label: 'Events Played' },
-              { value: `£${(totalPrizeMoney / 1000000).toFixed(1)}M`, label: 'Prize Money' },
-              { value: '3', label: 'Active Leagues' },
-            ].map((stat, i) => (
-              <div key={i} style={{
-                paddingRight: '40px', marginRight: '40px',
-                borderRight: i < 3 ? '1px solid rgba(255,255,255,0.1)' : 'none',
-              }}>
-                <div style={{
-                  fontSize: '38px', fontWeight: 900, letterSpacing: '-1px',
-                  background: 'linear-gradient(90deg, #C5A052, #FBF091, #C5A052)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                }}>
-                  {stat.value}
-                </div>
-                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '2px', marginTop: '4px' }}>
-                  {stat.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* BODY */}
-      <main style={{ flex: 1, maxWidth: '1400px', margin: '0 auto', width: '100%', padding: '48px 48px 64px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '48px' }}>
-
-          {/* LEFT */}
-          <div>
-
-            {/* Leaderboard — interactive client component */}
-            <div style={{ marginBottom: '48px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '3px', textTransform: 'uppercase' }}>
-                  Season Standings
-                </span>
-                <Link href="/leaderboard" style={{ fontSize: '11px', color: '#4379FF', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' }}>
-                  Full leaderboard ›
-                </Link>
-              </div>
-              <HomeLeaderboard
-                npl={nplBoard.slice(0, 8)}
-                hr={hrBoard.slice(0, 8)}
-                lr={lrBoard.slice(0, 8)}
-              />
+          <div className="relative z-20 text-center max-w-5xl px-6 py-12 mt-6">
+            <div className="flex justify-center items-center gap-4 mb-8">
+              <span className="h-[2px] w-12 bg-gradient-to-r from-transparent to-cyan-400"></span>
+              <span className="text-cyan-400 text-[10px] tracking-[5px] uppercase font-black px-5 py-1.5 rounded-full border border-cyan-400/40 bg-[#040408]/80 backdrop-blur-md shadow-[0_0_15px_rgba(0,243,255,0.2)]">
+                {season?.name || '2026 Season'} • LIVE
+              </span>
+              <span className="h-[2px] w-12 bg-gradient-to-l from-transparent to-cyan-400"></span>
             </div>
 
-            {/* Recent events */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '3px', textTransform: 'uppercase' }}>
-                  Recent Events
-                </span>
-                <Link href="/events" style={{ fontSize: '11px', color: '#4379FF', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' }}>
-                  All events ›
-                </Link>
+            <h1 className="flex flex-col items-center justify-center font-black italic uppercase leading-none mb-8 drop-shadow-[0_0_30px_rgba(0,0,0,0.8)]">
+              <span className="text-4xl md:text-5xl text-white">Where</span>
+              <span className="text-7xl md:text-8xl lg:text-[140px] text-gold-gradient py-2 filter drop-shadow-[0_0_20px_rgba(212,175,55,0.4)]">Champions</span>
+              <span className="text-4xl md:text-5xl text-white">Are Made</span>
+            </h1>
+
+            <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
+              <Link href="/leaderboard" className="relative group px-10 py-4 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-black rounded-xl transition-all uppercase tracking-widest text-[11px] overflow-hidden">
+                <span className="absolute inset-0 w-full h-full bg-white/20 group-hover:translate-x-full transition-transform duration-500 ease-out -skew-x-12 -translate-x-full"></span>
+                <span className="relative z-10 shadow-lg">Live Standings</span>
+              </Link>
+              <Link href="/events" className="px-10 py-4 bg-[#040408]/50 border border-white/20 text-white font-bold rounded-xl hover:bg-white/10 hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(0,243,255,0.2)] transition-all uppercase tracking-widest text-[11px] backdrop-blur-md">
+                View Schedule
+              </Link>
+            </div>
+
+            {/* Vibrant Stats Bar */}
+            <div className="flex justify-center items-center pt-8">
+              {[
+                { value: '1,670', label: 'Active Players', color: 'from-cyan-400 to-blue-500' },
+                { value: '77', label: 'Events Played', color: 'from-purple-400 to-pink-500' },
+                { value: '£2.6M', label: 'Prize Money', color: 'from-yellow-400 to-amber-600' },
+              ].map((stat, i) => (
+                <div key={i} className={`text-center px-8 md:px-16 ${i !== 2 ? 'border-r border-white/10' : ''}`}>
+                  <div className={`text-4xl md:text-6xl font-black mb-2 bg-gradient-to-br ${stat.color} text-transparent bg-clip-text drop-shadow-md`}>
+                    {stat.value}
+                  </div>
+                  <div className="text-[10px] text-white/50 tracking-[3px] uppercase font-bold">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* BODY */}
+        <main className="flex-1 max-w-[1400px] mx-auto w-full px-6 md:px-12 pb-24">
+          
+          <section className="mb-16">
+            <div className="flex justify-between items-end mb-8">
+              <div>
+                <h2 className="text-[11px] font-black tracking-[5px] text-cyan-400 uppercase mb-2 drop-shadow-[0_0_8px_rgba(0,243,255,0.5)]">Current Standings</h2>
+                <h3 className="text-4xl md:text-5xl font-black uppercase italic tracking-tight">The Power Rankings</h3>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            </div>
+            <HomeLeaderboard npl={nplBoard.slice(0, 8)} hr={hrBoard.slice(0, 8)} lr={lrBoard.slice(0, 8)} />
+          </section>
+
+          {/* BOTTOM GRID */}
+          <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            {/* Events */}
+            <div className="glass-panel p-8 rounded-3xl h-full border-t border-t-white/10">
+              <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-4">
+                <span className="text-[11px] font-black text-white/60 tracking-[4px] uppercase">Recent Events</span>
+              </div>
+              <div className="flex flex-col gap-4">
                 {events.map(event => (
-                  <Link key={event.id} href={`/events/${event.id}`}>
-                    <div style={{
-                      background: '#0d0d2a', border: '1px solid rgba(67,121,255,0.12)',
-                      borderRadius: '8px', padding: '14px 18px',
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    }}>
-                      <div style={{ flex: 1, paddingRight: '16px' }}>
-                        <div style={{ fontSize: '13px', color: '#ffffff', fontWeight: 600, marginBottom: '5px', lineHeight: 1.4 }}>
-                          {event.tournament_name}
-                        </div>
-                        <div style={{ display: 'flex', gap: '16px' }}>
-                          <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>{event.casino}</span>
-                          <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>
-                            {event.start_date ? new Date(event.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
-                          </span>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', flexShrink: 0 }}>
-                        <EventBadge event={event} />
-                        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>
-                          £{Number(event.buy_in).toLocaleString()}
-                        </span>
-                      </div>
+                  <Link key={event.id} href={`/events/${event.id}`} className="group relative bg-black/40 p-5 rounded-2xl border border-white/5 hover:border-cyan-500/50 transition-all overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/5 to-cyan-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                    <h4 className="text-sm font-bold text-white mb-2 relative z-10">{event.tournament_name}</h4>
+                    <div className="flex justify-between items-center text-xs font-mono relative z-10">
+                      <span className="text-white/40">{event.start_date ? new Date(event.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}</span>
+                      <span className="text-cyan-400 font-bold bg-cyan-400/10 px-3 py-1 rounded-md">£{Number(event.buy_in).toLocaleString()}</span>
                     </div>
                   </Link>
                 ))}
               </div>
             </div>
-          </div>
-
-          {/* RIGHT SIDEBAR */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-
-            {/* Prizes */}
-            {prizes.length > 0 && (
-              <div style={{ background: '#0d0d2a', border: '1px solid rgba(67,121,255,0.15)', borderRadius: '8px', padding: '22px' }}>
-                <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '18px' }}>
-                  Season Prizes — NPL
-                </div>
-                {prizes.map((prize: any) => (
-                  <div key={prize.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <span style={{
-                      fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600,
-                      color: prize.position_from === 1 ? '#FBF091' : 'rgba(255,255,255,0.4)',
-                    }}>
-                      {prize.position_from === prize.position_to
-                        ? `${prize.position_from}${ordinal(prize.position_from)} Place`
-                        : `${prize.position_from}${ordinal(prize.position_from)} – ${prize.position_to}${ordinal(prize.position_to)}`}
-                    </span>
-                    <span style={{
-                      fontWeight: 700,
-                      fontSize: prize.position_from === 1 ? '16px' : '14px',
-                      color: prize.position_from === 1 ? '#FBF091' : '#ffffff',
-                    }}>
-                      {prize.prize_description}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
 
             {/* Leagues */}
-            <div style={{ background: '#0d0d2a', border: '1px solid rgba(67,121,255,0.15)', borderRadius: '8px', padding: '22px' }}>
-              <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '18px' }}>
-                The Leagues
-              </div>
+            <div className="glass-panel p-8 rounded-3xl h-full border-t border-t-white/10 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 blur-[80px] rounded-full pointer-events-none"></div>
+              <span className="block text-[11px] font-black text-white/60 tracking-[4px] uppercase mb-8 border-b border-white/10 pb-4 relative z-10">The Leagues</span>
               {[
-                { name: 'National Poker League', rule: 'Top 20 results + 2pts per extra cash', color: '#4379FF', href: '/leaderboard' },
-                { name: 'High Roller League', rule: 'All results count · No cap', color: '#e8c870', href: '/leaderboard' },
-                { name: 'Low Roller League', rule: 'Buy-in ≤ £300 · All results count', color: '#60c890', href: '/leaderboard' },
+                { name: 'National Poker League', rule: 'Top 20 + 2pts extra', color: 'bg-cyan-500', glow: 'shadow-[0_0_15px_rgba(0,243,255,0.4)]' },
+                { name: 'High Roller', rule: 'Uncapped points', color: 'bg-[#e8c870]', glow: 'shadow-[0_0_15px_rgba(232,200,112,0.4)]' },
+                { name: 'Low Roller', rule: 'Buy-in ≤ £300', color: 'bg-[#60c890]', glow: 'shadow-[0_0_15px_rgba(96,200,144,0.4)]' },
               ].map(league => (
-                <Link key={league.name} href={league.href} style={{ display: 'block', marginBottom: '8px' }}>
-                  <div style={{
-                    padding: '13px 15px', borderRadius: '6px',
-                    background: '#080818',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderLeft: `3px solid ${league.color}`,
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  }}>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff', marginBottom: '3px' }}>
-                        {league.name}
-                      </div>
-                      <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>
-                        {league.rule}
-                      </div>
-                    </div>
-                    <span style={{ color: league.color, fontSize: '18px', fontWeight: 700, flexShrink: 0, marginLeft: '12px' }}>›</span>
-                  </div>
-                </Link>
+                <div key={league.name} className="relative bg-black/40 p-5 rounded-2xl mb-4 border border-white/5 pl-6 z-10 hover:bg-white/5 transition-colors">
+                  <div className={`absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl ${league.color} ${league.glow}`}></div>
+                  <h4 className="text-sm font-bold text-white mb-1.5">{league.name}</h4>
+                  <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold">{league.rule}</p>
+                </div>
               ))}
             </div>
 
             {/* News */}
-            <div style={{ background: '#0d0d2a', border: '1px solid rgba(67,121,255,0.15)', borderRadius: '8px', padding: '22px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-                <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '3px', textTransform: 'uppercase' }}>
-                  Latest News
-                </div>
-                <Link href="/news" style={{ fontSize: '11px', color: '#4379FF', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' }}>
-                  All ›
-                </Link>
+            <div className="glass-panel p-8 rounded-3xl h-full border-t border-t-white/10">
+              <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-4">
+                <span className="text-[11px] font-black text-white/60 tracking-[4px] uppercase">The Wire</span>
               </div>
-              {news.length === 0 ? (
-                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>No news yet</p>
-              ) : (
-                news.map((item: any) => (
-                  <div key={item.id} style={{ padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <div style={{ fontSize: '10px', color: '#4379FF', letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 700, marginBottom: '6px' }}>
-                      {new Date(item.published_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+              <div className="flex flex-col gap-6">
+                {news.map((item: any) => (
+                  <div key={item.id} className="group relative pl-4 border-l-2 border-white/10 hover:border-purple-500 transition-colors">
+                    <div className="absolute left-[-5px] top-1 w-2 h-2 rounded-full bg-purple-500 opacity-0 group-hover:opacity-100 transition-opacity shadow-[0_0_10px_rgba(157,0,255,0.8)]"></div>
+                    <div className="text-[9px] text-purple-400 tracking-[3px] uppercase font-black mb-1.5">
+                      {new Date(item.published_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                     </div>
-                    <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.85)', lineHeight: 1.5, fontWeight: 500 }}>
-                      {item.title}
-                    </div>
-                    {item.social_link && <NewsLink href={item.social_link} />}
+                    <div className="text-sm text-white/90 font-medium leading-snug group-hover:text-white transition-colors">{item.title}</div>
                   </div>
-                ))
-              )}
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
-      </main>
 
-      <Footer />
+          </section>
+        </main>
+        <Footer />
+      </div>
     </div>
   )
-}
-
-function NewsLink({ href }: { href: string }) {
-  return (
-    <a href={href} target="_blank" rel="noopener noreferrer" style={{
-      fontSize: '11px', color: '#4379FF', marginTop: '6px',
-      display: 'inline-block', fontWeight: 600,
-    }}>
-      View post ›
-    </a>
-  )
-}
-
-function EventBadge({ event }: { event: any }) {
-  if (event.is_high_roller) return (
-    <span style={{
-      fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase',
-      padding: '4px 10px', borderRadius: '4px',
-      background: 'rgba(232,200,112,0.12)', color: '#e8c870',
-      border: '1px solid rgba(232,200,112,0.3)',
-    }}>High Roller</span>
-  )
-  if (event.is_low_roller) return (
-    <span style={{
-      fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase',
-      padding: '4px 10px', borderRadius: '4px',
-      background: 'rgba(96,200,144,0.12)', color: '#60c890',
-      border: '1px solid rgba(96,200,144,0.3)',
-    }}>Low Roller</span>
-  )
-  return (
-    <span style={{
-      fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase',
-      padding: '4px 10px', borderRadius: '4px',
-      background: 'rgba(67,121,255,0.12)', color: '#4379FF',
-      border: '1px solid rgba(67,121,255,0.25)',
-    }}>Main</span>
-  )
-}
-
-function ordinal(n: number) {
-  const s = ['th', 'st', 'nd', 'rd']
-  const v = n % 100
-  return s[(v - 20) % 10] || s[v] || s[0]
 }

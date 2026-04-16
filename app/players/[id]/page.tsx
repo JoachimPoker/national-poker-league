@@ -67,11 +67,11 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
   const bestFinish = seasonResults.length > 0
     ? Math.min(...seasonResults.map(r => r.finish_position).filter(p => p > 0))
     : 0
-  const wins = seasonResults.filter(r => r.finish_position === 1).length
 
   // NPL rank
   const nplLeaderboard = await getNPLLeaderboard(seasonId)
   const nplRank = nplLeaderboard.findIndex(e => e.player_id === playerId) + 1
+  const isFirst = nplRank === 1
 
   // All venues for explorer badge
   const { data: allVenueData } = await supabase
@@ -85,297 +85,279 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
   const badges = calculateBadges(lifetimeStats)
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#080818' }}>
-      <Navbar />
+    <div className="min-h-screen bg-[#040408] text-white flex flex-col font-sans relative overflow-hidden">
+      
+      {/* GLOBAL AMBIENT LIGHTING & GRID */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 casino-grid opacity-40"></div>
+        <div className="absolute top-[0%] left-[-10%] w-[50vw] h-[50vw] bg-cyan-600/10 rounded-full blur-[150px] animate-float mix-blend-screen"></div>
+        <div className="absolute bottom-[20%] right-[-10%] w-[40vw] h-[40vw] bg-blue-600/10 rounded-full blur-[150px] animate-float-delayed mix-blend-screen"></div>
+      </div>
 
-      {/* Header */}
-      <section style={{
-        background: '#0a0820',
-        padding: '40px 48px',
-        borderBottom: '1px solid rgba(67,121,255,0.15)',
-      }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-          <Link href="/leaderboard" style={{
-            fontSize: '11px', color: 'rgba(255,255,255,0.35)', letterSpacing: '1px',
-            textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center',
-            gap: '6px', marginBottom: '24px', fontWeight: 600,
-          }}>
-            ← Back to leaderboard
-          </Link>
+      <div className="relative z-10 flex flex-col min-h-screen">
+        <Navbar />
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-            {/* Avatar */}
-            <div style={{
-              width: '72px', height: '72px', borderRadius: '50%', flexShrink: 0,
-              background: 'rgba(67,121,255,0.12)',
-              border: '2px solid rgba(67,121,255,0.3)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '24px', fontWeight: 800, color: '#4379FF',
-            }}>
-              {player.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
-            </div>
+        {/* 1. FULL WIDTH HEADER */}
+        <section className="relative bg-black/40 border-b border-white/10 pt-10 pb-12 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+          <div className="max-w-[1400px] mx-auto px-6 md:px-12">
+            
+            <Link href="/players" className="group inline-flex items-center gap-2 text-[10px] text-white/40 hover:text-cyan-400 font-bold uppercase tracking-widest mb-8 transition-colors">
+              <span className="group-hover:-translate-x-1 transition-transform">←</span> Back to Directory
+            </Link>
 
-            <div style={{ flex: 1 }}>
-              <div style={{
-                fontSize: '10px', color: '#4379FF', letterSpacing: '3px',
-                textTransform: 'uppercase', fontWeight: 700, marginBottom: '8px',
-              }}>
-                Player Profile · {season?.name}
-              </div>
-              <h1 style={{
-                fontSize: '36px', fontWeight: 900, color: '#ffffff',
-                letterSpacing: '-0.5px', marginBottom: '4px',
-              }}>
-                {player.full_name}
-              </h1>
-            </div>
-
-            {/* NPL rank badge */}
-            {nplRank > 0 && (
-              <div style={{ textAlign: 'center', flexShrink: 0 }}>
-                <div style={{
-                  fontSize: '10px', color: 'rgba(255,255,255,0.35)',
-                  textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '6px',
-                }}>
-                  NPL Rank
-                </div>
-                <div style={{
-                  fontSize: '48px', fontWeight: 900, letterSpacing: '-2px',
-                  color: nplRank === 1 ? '#FBF091' : '#ffffff',
-                }}>
-                  #{nplRank}
+            <div className="flex flex-col md:flex-row md:items-center gap-6 lg:gap-10">
+              
+              {/* Neon Avatar */}
+              <div className="relative">
+                {isFirst && <div className="absolute inset-0 bg-[#D4AF37] blur-[20px] rounded-full opacity-40 animate-pulse"></div>}
+                <div className={`relative w-24 h-24 md:w-28 md:h-28 rounded-full flex-shrink-0 flex items-center justify-center text-3xl font-black border-4 shadow-xl z-10 ${
+                  isFirst 
+                    ? 'bg-gradient-to-br from-[#D4AF37]/30 to-[#FBF091]/10 text-[#FBF091] border-[#D4AF37] shadow-[0_0_30px_rgba(212,175,55,0.4)]' 
+                    : 'bg-gradient-to-br from-cyan-500/20 to-blue-600/10 text-cyan-400 border-cyan-400/50 shadow-[0_0_30px_rgba(0,243,255,0.2)]'
+                }`}>
+                  {player.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                 </div>
               </div>
-            )}
+
+              {/* Player Details */}
+              <div className="flex-1">
+                <div className="flex items-center gap-4 mb-2">
+                  <span className="h-[2px] w-6 bg-gradient-to-r from-transparent to-cyan-400"></span>
+                  <span className="text-cyan-400 text-[10px] tracking-[4px] uppercase font-black">
+                    Contender Profile · {season?.name}
+                  </span>
+                </div>
+                <h1 className="text-4xl md:text-5xl lg:text-7xl font-black italic tracking-tighter uppercase mb-2 drop-shadow-[0_0_20px_rgba(0,0,0,0.8)] leading-none">
+                  {player.full_name}
+                </h1>
+                <div className="text-white/50 text-sm md:text-base font-mono uppercase tracking-widest">
+                  {player.home_casino || 'Independent'}
+                </div>
+              </div>
+
+              {/* NPL Rank Badge */}
+              {nplRank > 0 && (
+                <div className="text-left md:text-center flex-shrink-0 bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md relative overflow-hidden">
+                  {isFirst && <div className="absolute top-0 right-0 w-32 h-32 bg-[#D4AF37]/20 blur-[30px] rounded-full"></div>}
+                  <div className="text-[10px] text-white/50 uppercase tracking-[3px] font-black mb-1 relative z-10">
+                    Current Rank
+                  </div>
+                  <div className={`text-5xl md:text-6xl font-black italic relative z-10 ${isFirst ? 'text-gold-gradient drop-shadow-md' : 'text-white'}`}>
+                    #{nplRank}
+                  </div>
+                </div>
+              )}
+            </div>
+
           </div>
-        </div>
-      </section>
+        </section>
 
-      <main style={{ flex: 1, maxWidth: '1400px', margin: '0 auto', width: '100%', padding: '40px 48px 64px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '40px' }}>
+        {/* 2. MAIN GRID (Sidebar + Content) */}
+        <main className="flex-1 max-w-[1400px] mx-auto w-full px-6 md:px-12 py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
 
-          {/* LEFT */}
-          <div>
-
-            {/* Stat cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '40px' }}>
-              {[
-                { label: 'Total Cashes', value: seasonResults.length },
-                { label: 'NPL Points', value: (Math.round(nplPoints * 100) / 100).toFixed(2) },
-                { label: 'Prize Money', value: `£${totalPrizeMoney.toLocaleString()}` },
-                { label: 'Best Finish', value: bestFinish > 0 ? `${bestFinish}${ordinal(bestFinish)}` : '—' },
-              ].map(stat => (
-                <div key={stat.label} style={{
-                  background: '#0d0d2a',
-                  border: '1px solid rgba(67,121,255,0.15)',
-                  borderRadius: '8px', padding: '16px 18px',
-                }}>
-                  <div style={{
-                    fontSize: '10px', color: 'rgba(255,255,255,0.35)',
-                    textTransform: 'uppercase', letterSpacing: '1.5px',
-                    marginBottom: '8px', fontWeight: 700,
-                  }}>
-                    {stat.label}
-                  </div>
-                  <div style={{ fontSize: '22px', fontWeight: 900, color: '#ffffff' }}>
-                    {stat.value}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* League breakdown */}
-            <div style={{ marginBottom: '40px' }}>
-              <div style={{
-                fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.35)',
-                letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '16px',
-              }}>
-                League Standing
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+            {/* LEFT SIDEBAR (1/3 Width) */}
+            <div className="lg:col-span-1 flex flex-col gap-8">
+              
+              {/* Stat Cards (2x2 Grid) */}
+              <div className="grid grid-cols-2 gap-4">
                 {[
-                  { label: 'National Poker League', points: Math.round(nplPoints * 100) / 100, results: seasonResults.length, rank: nplRank, color: '#4379FF' },
-                  { label: 'High Roller League', points: Math.round(hrPoints * 100) / 100, results: hrResults.length, rank: 0, color: '#e8c870' },
-                  { label: 'Low Roller League', points: Math.round(lrPoints * 100) / 100, results: lrResults.length, rank: 0, color: '#60c890' },
-                ].map(league => (
-                  <div key={league.label} style={{
-                    background: '#0d0d2a',
-                    border: '1px solid rgba(67,121,255,0.15)',
-                    borderLeft: `3px solid ${league.color}`,
-                    borderRadius: '8px', padding: '16px',
-                  }}>
-                    <div style={{
-                      fontSize: '11px', fontWeight: 700, color: league.color,
-                      marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px',
-                    }}>
-                      {league.label}
+                  { label: 'Total Cashes', value: seasonResults.length, color: 'text-white' },
+                  { label: 'NPL Points', value: (Math.round(nplPoints * 100) / 100).toFixed(2), color: 'text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]' },
+                  { label: 'Prize Money', value: `£${totalPrizeMoney.toLocaleString()}`, color: 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]' },
+                  { label: 'Best Finish', value: bestFinish > 0 ? `${bestFinish}${ordinal(bestFinish)}` : '—', color: bestFinish === 1 ? 'text-[#FBF091] drop-shadow-[0_0_8px_rgba(251,240,145,0.5)]' : 'text-white' },
+                ].map((stat, i) => (
+                  <div key={stat.label} className="glass-panel rounded-2xl p-5 relative overflow-hidden group hover:border-white/20 transition-all">
+                    <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-full blur-xl group-hover:bg-white/10 transition-colors"></div>
+                    <div className="text-[9px] text-white/40 tracking-[2px] uppercase font-black mb-2 relative z-10">
+                      {stat.label}
                     </div>
-                    <div style={{ fontSize: '26px', fontWeight: 900, color: '#ffffff', marginBottom: '4px' }}>
-                      {league.points.toFixed(2)}
-                    </div>
-                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>
-                      {league.results} result{league.results !== 1 ? 's' : ''}
-                      {league.rank > 0 && ` · Rank #${league.rank}`}
+                    <div className={`text-2xl font-black relative z-10 ${stat.color}`}>
+                      {stat.value}
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
 
-            {/* Results table */}
-            <div>
-              <div style={{
-                fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.35)',
-                letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '16px',
-              }}>
-                All Results — {season?.name}
-              </div>
-              <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(67,121,255,0.15)' }}>
-                <div style={{
-                  display: 'grid', gridTemplateColumns: '1fr 130px 80px 80px 100px',
-                  padding: '11px 20px', background: '#0d0d2a',
-                  borderBottom: '1px solid rgba(67,121,255,0.15)',
-                }}>
-                  {['Event', 'Date', 'Finish', 'Buy-in', 'Points'].map((col, i) => (
-                    <div key={col} style={{
-                      fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase',
-                      color: 'rgba(255,255,255,0.25)', textAlign: i >= 2 ? 'right' : 'left',
-                    }}>
-                      {col}
-                    </div>
-                  ))}
-                </div>
-
-                {seasonResults.map((result, index) => (
-                  <div key={result.id} style={{
-                    display: 'grid', gridTemplateColumns: '1fr 130px 80px 80px 100px',
-                    padding: '12px 20px',
-                    borderBottom: '1px solid rgba(255,255,255,0.04)',
-                    alignItems: 'center',
-                    background: index % 2 === 0 ? '#080818' : '#0a0a20',
-                  }}>
-                    <div>
-                      <Link href={`/events/${result.event_id}`} style={{
-                        fontSize: '12px', color: '#ffffff', fontWeight: 600,
-                        lineHeight: 1.4, display: 'block',
-                      }}>
-                        {result.events?.tournament_name}
-                      </Link>
-                      <div style={{ display: 'flex', gap: '6px', marginTop: '4px', alignItems: 'center' }}>
-                        {result.events?.is_high_roller && (
-                          <span style={{
-                            fontSize: '9px', color: '#e8c870',
-                            background: 'rgba(232,200,112,0.1)',
-                            border: '1px solid rgba(232,200,112,0.25)',
-                            padding: '2px 6px', borderRadius: '3px', fontWeight: 700,
-                          }}>HR</span>
-                        )}
-                        {result.events?.is_low_roller && (
-                          <span style={{
-                            fontSize: '9px', color: '#60c890',
-                            background: 'rgba(96,200,144,0.1)',
-                            border: '1px solid rgba(96,200,144,0.25)',
-                            padding: '2px 6px', borderRadius: '3px', fontWeight: 700,
-                          }}>LR</span>
-                        )}
-                        <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)' }}>
-                          {result.events?.casino}
-                        </span>
-                      </div>
-                    </div>
-                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', textAlign: 'right' }}>
-                      {result.events?.start_date
-                        ? new Date(result.events.start_date).toLocaleDateString('en-GB', {
-                            day: 'numeric', month: 'short', year: 'numeric',
-                          })
-                        : '—'}
-                    </div>
-                    <div style={{
-                      fontSize: '13px', textAlign: 'right', fontWeight: 800,
-                      color: result.finish_position === 1 ? '#FBF091' : '#ffffff',
-                    }}>
-                      {result.finish_position}{ordinal(result.finish_position)}
-                    </div>
-                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', textAlign: 'right' }}>
-                      £{Number(result.events?.buy_in || 0).toLocaleString()}
-                    </div>
-                    <div style={{ fontSize: '14px', fontWeight: 800, textAlign: 'right', color: '#ffffff' }}>
-                      {result.points.toFixed(2)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT SIDEBAR */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-
-            {/* Achievements */}
-            <div style={{
-              background: '#0d0d2a',
-              border: '1px solid rgba(67,121,255,0.15)',
-              borderRadius: '8px', padding: '22px',
-            }}>
-              <div style={{
-                fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.35)',
-                letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '20px',
-              }}>
-                Achievements
-              </div>
-              <BadgeGrid badges={badges} />
-            </div>
-
-            {/* Prize money breakdown */}
-            {totalPrizeMoney > 0 && (
-              <div style={{
-                background: '#0d0d2a',
-                border: '1px solid rgba(67,121,255,0.15)',
-                borderRadius: '8px', padding: '22px',
-              }}>
-                <div style={{
-                  fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.35)',
-                  letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '16px',
-                }}>
-                  Prize Money
-                </div>
-                {seasonResults
-                  .filter(r => r.prize_amount > 0)
-                  .sort((a, b) => b.prize_amount - a.prize_amount)
-                  .map(result => (
-                    <div key={result.id} style={{
-                      display: 'flex', justifyContent: 'space-between',
-                      padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)',
-                    }}>
-                      <div style={{
-                        fontSize: '12px', color: 'rgba(255,255,255,0.5)',
-                        flex: 1, paddingRight: '8px', lineHeight: 1.4,
-                      }}>
-                        {result.events?.tournament_name?.split(' - ')[0] || result.events?.tournament_name}
-                      </div>
-                      <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff', flexShrink: 0 }}>
-                        £{result.prize_amount.toLocaleString()}
+              {/* Circuit Performance */}
+              <div className="glass-panel p-6 rounded-3xl relative overflow-hidden border-t border-t-white/10">
+                <h3 className="text-[11px] font-black text-white/60 tracking-[4px] uppercase mb-5 border-b border-white/10 pb-3 relative z-10">
+                  Circuit Performance
+                </h3>
+                <div className="flex flex-col gap-3 relative z-10">
+                  {[
+                    { label: 'National League', points: Math.round(nplPoints * 100) / 100, results: seasonResults.length, border: 'border-cyan-500' },
+                    { label: 'High Roller', points: Math.round(hrPoints * 100) / 100, results: hrResults.length, border: 'border-amber-500' },
+                    { label: 'Low Roller', points: Math.round(lrPoints * 100) / 100, results: lrResults.length, border: 'border-emerald-500' },
+                  ].map(league => (
+                    <div key={league.label} className={`relative bg-black/40 border border-white/5 rounded-xl p-4 overflow-hidden`}>
+                      <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${league.border} opacity-80`}></div>
+                      <div className="flex justify-between items-center pl-2">
+                        <div>
+                          <div className="text-[10px] font-black text-white/80 uppercase tracking-[2px] mb-1">
+                            {league.label}
+                          </div>
+                          <div className="text-xs text-white/40 font-bold uppercase tracking-widest">
+                            {league.results} Event{league.results !== 1 ? 's' : ''}
+                          </div>
+                        </div>
+                        <div className="text-2xl font-black text-white">
+                          {league.points.toFixed(2)}
+                        </div>
                       </div>
                     </div>
                   ))}
-                <div style={{
-                  display: 'flex', justifyContent: 'space-between',
-                  paddingTop: '12px', marginTop: '4px',
-                }}>
-                  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', fontWeight: 700 }}>
-                    Total
+                </div>
+              </div>
+
+              {/* Trophy Cabinet */}
+              <div className="glass-panel p-6 rounded-3xl border-t border-t-white/10 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 blur-[40px] rounded-full pointer-events-none"></div>
+                <h3 className="text-[11px] font-black text-white/60 tracking-[4px] uppercase mb-6 border-b border-white/10 pb-3 relative z-10">
+                  Trophy Cabinet
+                </h3>
+                <div className="relative z-10">
+                  <BadgeGrid badges={badges} />
+                </div>
+              </div>
+
+            </div>
+
+            {/* RIGHT MAIN CONTENT (2/3 Width) */}
+            <div className="lg:col-span-2 flex flex-col gap-8">
+              
+              {/* History Table */}
+              <div className="flex flex-col w-full">
+                <div className="flex justify-between items-end mb-4 border-b border-white/10 pb-4">
+                  <h3 className="text-[11px] font-black text-white/60 tracking-[4px] uppercase">
+                    Tournament History
+                  </h3>
+                  <span className="text-[10px] uppercase tracking-widest font-bold text-white/30">
+                    {seasonResults.length} Records
+                  </span>
+                </div>
+
+                <div className="glass-panel rounded-3xl overflow-hidden shadow-2xl">
+                  {/* Desktop Header */}
+                  <div className="hidden md:grid grid-cols-[1fr_100px_80px_90px_90px] gap-4 p-5 border-b border-white/10 bg-white/5 text-[9px] uppercase tracking-[3px] font-black text-white/40">
+                    <div>Event</div>
+                    <div className="text-right">Date</div>
+                    <div className="text-right">Finish</div>
+                    <div className="text-right">Buy-in</div>
+                    <div className="text-right pr-2">Points</div>
                   </div>
-                  <div style={{ fontSize: '16px', fontWeight: 900, color: '#ffffff' }}>
-                    £{totalPrizeMoney.toLocaleString()}
+
+                  {/* Body */}
+                  <div className="bg-black/50 backdrop-blur-xl">
+                    {seasonResults.length === 0 ? (
+                      <div className="p-12 text-center text-white/30 font-bold uppercase tracking-widest text-sm">
+                        No recorded cashes yet
+                      </div>
+                    ) : (
+                      seasonResults.map((result) => {
+                        const isWin = result.finish_position === 1;
+                        return (
+                          <div key={result.id} className="group flex flex-col md:grid md:grid-cols-[1fr_100px_80px_90px_90px] gap-4 p-5 md:items-center border-b border-white/5 last:border-0 hover:bg-gradient-to-r hover:from-white/5 hover:to-transparent transition-all relative">
+                            {/* Hover & Win Glow */}
+                            <div className="absolute left-0 top-0 bottom-0 w-1 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-b from-cyan-400 to-blue-600"></div>
+                            {isWin && <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#D4AF37] to-[#FBF091] shadow-[0_0_10px_rgba(212,175,55,0.5)]"></div>}
+
+                            {/* Event Name & Badges */}
+                            <div className="pl-2 md:pl-0">
+                              <Link href={`/events/${result.event_id}`} className="text-[13px] font-bold text-white/90 group-hover:text-cyan-400 transition-colors leading-snug block mb-1.5 pr-2">
+                                {result.events?.tournament_name}
+                              </Link>
+                              <div className="flex items-center gap-2">
+                                {result.events?.is_high_roller && <span className="text-[8px] uppercase tracking-widest font-black text-amber-400 bg-amber-400/10 border border-amber-400/30 px-1.5 py-0.5 rounded">HR</span>}
+                                {result.events?.is_low_roller && <span className="text-[8px] uppercase tracking-widest font-black text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 px-1.5 py-0.5 rounded">LR</span>}
+                                <span className="text-[9px] text-white/40 font-mono tracking-tight">{result.events?.casino}</span>
+                              </div>
+                            </div>
+
+                            <div className="hidden md:block text-[10px] text-white/40 text-right font-mono">
+                              {result.events?.start_date ? new Date(result.events.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'}
+                            </div>
+
+                            <div className="flex justify-between items-center md:justify-end pl-2 md:pl-0 mt-2 md:mt-0">
+                              <span className="md:hidden text-[10px] text-white/40 uppercase tracking-widest font-bold">Finish</span>
+                              <span className={`font-black italic ${isWin ? 'text-2xl text-gold-gradient drop-shadow-sm' : 'text-lg text-white/80'}`}>
+                                {result.finish_position}<span className="text-xs">{ordinal(result.finish_position)}</span>
+                              </span>
+                            </div>
+
+                            <div className="flex justify-between items-center md:justify-end pl-2 md:pl-0">
+                              <span className="md:hidden text-[10px] text-white/40 uppercase tracking-widest font-bold">Buy-in</span>
+                              <span className="text-xs text-white/60 font-mono">
+                                £{Number(result.events?.buy_in || 0).toLocaleString()}
+                              </span>
+                            </div>
+
+                            <div className="flex justify-between items-center md:justify-end pl-2 md:pl-0 md:pr-2">
+                              <span className="md:hidden text-[10px] text-white/40 uppercase tracking-widest font-bold">Points</span>
+                              <span className={`font-mono font-black ${isWin ? 'text-xl text-[#FBF091]' : 'text-lg text-white'}`}>
+                                {result.points.toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      })
+                    )}
                   </div>
                 </div>
               </div>
-            )}
-          </div>
-        </div>
-      </main>
 
-      <Footer />
+              {/* Vault Earnings Ledger */}
+              {totalPrizeMoney > 0 && (
+                <div className="flex flex-col w-full">
+                  <div className="flex justify-between items-end mb-4 border-b border-white/10 pb-4 mt-4">
+                    <h3 className="text-[11px] font-black text-emerald-400/80 tracking-[4px] uppercase">
+                      Vault Earnings
+                    </h3>
+                  </div>
+
+                  <div className="glass-panel rounded-3xl border-t border-t-white/10 relative overflow-hidden flex flex-col">
+                    <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 blur-[60px] rounded-full pointer-events-none"></div>
+                    
+                    {/* Ledger Body */}
+                    <div className="p-6 relative z-10 bg-black/30">
+                      <div className="flex flex-col gap-1">
+                        {seasonResults
+                          .filter(r => r.prize_amount > 0)
+                          .sort((a, b) => b.prize_amount - a.prize_amount)
+                          .map(result => (
+                            <div key={result.id} className="flex justify-between items-center py-3 border-b border-white/5 border-dashed last:border-0 hover:bg-white/5 transition-colors px-3 rounded-md">
+                              <div className="text-[11px] font-mono text-white/60 flex-1 pr-4 truncate tracking-tight">
+                                {result.events?.tournament_name?.split(' - ')[0] || result.events?.tournament_name}
+                              </div>
+                              <div className="text-sm font-black font-mono text-emerald-400/90 flex-shrink-0">
+                                £{result.prize_amount.toLocaleString()}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+
+                    {/* Ledger Footer */}
+                    <div className="p-6 relative z-10 bg-[#0A0A10]/90 backdrop-blur-md border-t border-white/10">
+                      <div className="flex justify-between items-center px-3">
+                        <div className="text-[10px] text-white/40 uppercase tracking-[3px] font-black">
+                          Total Winnings
+                        </div>
+                        <div className="text-2xl font-black font-mono text-white drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]">
+                          £{totalPrizeMoney.toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </main>
+
+        <Footer />
+      </div>
     </div>
   )
 }

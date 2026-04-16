@@ -3,434 +3,249 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 
 const LEAGUES = [
-  { key: 'npl', label: 'National Poker League', shortLabel: 'NPL', color: '#4379FF', rule: 'Top 20 results + 2pts per extra cash' },
-  { key: 'hr', label: 'High Roller League', shortLabel: 'High Roller', color: '#e8c870', rule: 'All results count · No cap' },
-  { key: 'lr', label: 'Low Roller League', shortLabel: 'Low Roller', color: '#60c890', rule: 'Buy-in ≤ £300 · All results count' },
+  { key: 'npl', label: 'NPL Main', activeClass: 'lb-tab-active-npl', color: 'from-blue-600 to-cyan-400' },
+  { key: 'hr',  label: 'High Roller', activeClass: 'lb-tab-active-hr', color: 'from-amber-500 to-yellow-300' },
+  { key: 'lr',  label: 'Low Roller', activeClass: 'lb-tab-active-lr', color: 'from-green-600 to-emerald-400' },
 ]
 
-const PAGE_SIZE = 25
+const ITEMS_PER_PAGE = 20
 
-export default function LeaderboardClient({ npl, hr, lr, prizes }: {
-  npl: any[]
-  hr: any[]
-  lr: any[]
-  prizes: any[]
-}) {
-  const [activeLeague, setActiveLeague] = useState('npl')
+export default function LeaderboardClient({ npl, hr, lr }: { npl: any[], hr: any[], lr: any[] }) {
+  const [active, setActive] = useState('npl')
   const [search, setSearch] = useState('')
-  const [venueFilter, setVenueFilter] = useState('')
-  const [minResults, setMinResults] = useState('')
-  const [page, setPage] = useState(1)
+  const [currentPage, setCurrentPage] = useState(1)
 
-  const data = activeLeague === 'npl' ? npl : activeLeague === 'hr' ? hr : lr
-  const league = LEAGUES.find(l => l.key === activeLeague)!
-  const leaguePrizes = prizes.filter(p => p.league === activeLeague)
+  // 1. Get raw data and attach TRUE absolute rank
+  const rawData = useMemo(() => {
+    const data = active === 'npl' ? npl : active === 'hr' ? hr : lr
+    return data.map((entry, idx) => ({ ...entry, absoluteRank: idx + 1 }))
+  }, [active, npl, hr, lr])
 
-  const venues = useMemo(() => {
-    const all = data.map((e: any) => e.home_casino).filter(Boolean)
-    return [...new Set(all)].sort()
-  }, [data])
+  // 2. Filter by search
+  const isSearching = search.trim() !== ''
+  const filteredData = useMemo(() => {
+    if (!isSearching) return rawData
+    return rawData.filter(e => e.gdpr && e.full_name?.toLowerCase().includes(search.toLowerCase()))
+  }, [rawData, search, isSearching])
 
-  const filtered = useMemo(() => {
-    let result = data
-    if (search.trim()) {
-      const q = search.toLowerCase().trim()
-      result = result.filter((e: any) => e.gdpr && e.full_name.toLowerCase().includes(q))
-    }
-    if (venueFilter) result = result.filter((e: any) => e.home_casino === venueFilter)
-    if (minResults) result = result.filter((e: any) => e.result_count >= parseInt(minResults))
-    return result
-  }, [data, search, venueFilter, minResults])
+  // 3. Calculate Pagination
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / ITEMS_PER_PAGE))
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE
+    return filteredData.slice(start, start + ITEMS_PER_PAGE)
+  }, [filteredData, currentPage])
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-
-  function handleLeagueChange(key: string) {
-    setActiveLeague(key)
-    setPage(1)
+  // 4. Handlers to reset page
+  const handleTabChange = (key: string) => {
+    setActive(key)
     setSearch('')
-    setVenueFilter('')
-    setMinResults('')
+    setCurrentPage(1)
   }
 
-  function handleFilterChange(setter: (v: string) => void, value: string) {
-    setter(value)
-    setPage(1)
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value)
+    setCurrentPage(1)
   }
+
+  const activeGradient = LEAGUES.find(l => l.key === active)?.color || 'from-gray-500 to-gray-400'
+  
+  // Only show the giant "Top 3" cards if we are on Page 1 and not searching
+  const showTopThreeCards = !isSearching && currentPage === 1 && paginatedData.length >= 3
+  const topThree = showTopThreeCards ? paginatedData.slice(0, 3) : []
+  const theRest = showTopThreeCards ? paginatedData.slice(3) : paginatedData
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '40px' }}>
-
-      {/* Left */}
-      <div>
-        {/* League tabs */}
-        <div style={{
-          display: 'flex', gap: '4px', marginBottom: '24px',
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(67,121,255,0.15)',
-          borderRadius: '6px', padding: '4px',
-        }}>
-          {LEAGUES.map(l => (
+    <div className="w-full">
+      {/* Controls */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12">
+        <div className="lb-tab-bar !mb-0 p-1.5 bg-black/40 rounded-[16px] border border-white/5 backdrop-blur-md w-full md:w-auto overflow-x-auto">
+          {LEAGUES.map(tab => (
             <button
-              key={l.key}
-              onClick={() => handleLeagueChange(l.key)}
-              style={{
-                flex: 1, padding: '10px 12px', fontSize: '11px',
-                letterSpacing: '1px', textTransform: 'uppercase',
-                borderRadius: '4px', cursor: 'pointer', border: 'none',
-                background: activeLeague === l.key ? '#1F1A5A' : 'transparent',
-                color: activeLeague === l.key ? '#ffffff' : 'rgba(255,255,255,0.3)',
-                outline: activeLeague === l.key ? '1px solid rgba(67,121,255,0.4)' : 'none',
-                fontWeight: activeLeague === l.key ? 700 : 500,
-              }}
+              key={tab.key}
+              className={`lb-tab border-0 whitespace-nowrap ${active === tab.key ? tab.activeClass : 'bg-transparent text-white/40'}`}
+              onClick={() => handleTabChange(tab.key)}
             >
-              {l.shortLabel}
+              {tab.label}
             </button>
           ))}
         </div>
+        <input
+          className="lb-search !mb-0 w-full md:max-w-md bg-black/40 border-white/10 focus:border-cyan-400"
+          placeholder="Search contenders..."
+          value={search}
+          onChange={handleSearchChange}
+        />
+      </div>
 
-        {/* League info bar */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '14px',
-          marginBottom: '20px', paddingBottom: '20px',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-        }}>
-          <div style={{ width: '3px', height: '32px', background: league.color, borderRadius: '2px', flexShrink: 0 }} />
-          <div>
-            <div style={{ fontSize: '15px', fontWeight: 700, color: '#ffffff', marginBottom: '3px' }}>{league.label}</div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>{league.rule}</div>
-          </div>
-          <div style={{ marginLeft: 'auto', fontSize: '12px', color: 'rgba(255,255,255,0.35)' }}>
-            {filtered.length} player{filtered.length !== 1 ? 's' : ''}
-            {filtered.length !== data.length && (
-              <span style={{ color: '#4379FF', marginLeft: '6px' }}>
-                (filtered from {data.length})
-              </span>
-            )}
-          </div>
+      {filteredData.length === 0 ? (
+        <div className="glass-panel p-16 text-center text-white/40 font-bold uppercase tracking-widest text-sm rounded-3xl mb-12 border-dashed border-2 border-white/10">
+          No records found in the vault.
         </div>
-
-        {/* Filters */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-          {/* Search */}
-          <div>
-            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 700 }}>
-              Search player
-            </div>
-            <input
-              type="text"
-              value={search}
-              onChange={e => handleFilterChange(setSearch, e.target.value)}
-              placeholder="Player name..."
-              style={{
-                width: '100%', background: '#0a0820',
-                border: '1px solid rgba(67,121,255,0.25)',
-                color: '#ffffff', padding: '9px 12px',
-                borderRadius: '4px', fontSize: '13px',
-              }}
-            />
-          </div>
-
-          {/* Venue */}
-          <div>
-            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 700 }}>
-              Venue
-            </div>
-            <select
-              value={venueFilter}
-              onChange={e => handleFilterChange(setVenueFilter, e.target.value)}
-              style={{
-                width: '100%', background: '#0a0820',
-                border: '1px solid rgba(67,121,255,0.25)',
-                color: venueFilter ? '#ffffff' : 'rgba(255,255,255,0.35)',
-                padding: '9px 12px', borderRadius: '4px', fontSize: '13px',
-              }}
-            >
-              <option value="">All venues</option>
-              {venues.map(v => <option key={v} value={v}>{v}</option>)}
-            </select>
-          </div>
-
-          {/* Min results */}
-          <div>
-            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 700 }}>
-              Min results
-            </div>
-            <select
-              value={minResults}
-              onChange={e => handleFilterChange(setMinResults, e.target.value)}
-              style={{
-                width: '100%', background: '#0a0820',
-                border: '1px solid rgba(67,121,255,0.25)',
-                color: minResults ? '#ffffff' : 'rgba(255,255,255,0.35)',
-                padding: '9px 12px', borderRadius: '4px', fontSize: '13px',
-              }}
-            >
-              <option value="">Any</option>
-              {[1, 2, 3, 5, 10, 15, 20].map(n => (
-                <option key={n} value={n}>{n}+ results</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Clear filters */}
-        {(search || venueFilter || minResults) && (
-          <button
-            onClick={() => { setSearch(''); setVenueFilter(''); setMinResults(''); setPage(1) }}
-            style={{
-              background: 'transparent', border: '1px solid rgba(67,121,255,0.25)',
-              color: 'rgba(255,255,255,0.5)', padding: '7px 16px', borderRadius: '4px',
-              fontSize: '11px', cursor: 'pointer', marginBottom: '16px', letterSpacing: '0.5px',
-            }}
-          >
-            Clear filters ×
-          </button>
-        )}
-
-        {/* Table */}
-        <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(67,121,255,0.15)' }}>
-          {/* Header */}
-          <div style={{
-            display: 'grid', gridTemplateColumns: '56px 1fr 100px 100px 110px',
-            padding: '11px 20px', background: '#0d0d2a',
-            borderBottom: '1px solid rgba(67,121,255,0.15)',
-          }}>
-            {['Rank', 'Player', 'Results', 'Best Finish', 'Points'].map((col, i) => (
-              <div key={col} style={{
-                fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase',
-                color: 'rgba(255,255,255,0.25)', textAlign: i >= 2 ? 'right' : 'left',
-              }}>
-                {col}
-              </div>
-            ))}
-          </div>
-
-          {/* Rows */}
-          {paginated.length === 0 ? (
-            <div style={{ padding: '60px 20px', textAlign: 'center', fontSize: '13px', color: 'rgba(255,255,255,0.25)', fontStyle: 'italic', background: '#080818' }}>
-              No players found matching your filters
-            </div>
-          ) : (
-            paginated.map((entry, index) => {
-              const rank = filtered.indexOf(entry) + 1
-              const isFirst = rank === 1
-              return (
-                <div key={entry.player_id} style={{
-                  display: 'grid', gridTemplateColumns: '56px 1fr 100px 100px 110px',
-                  padding: '13px 20px',
-                  borderBottom: '1px solid rgba(255,255,255,0.04)',
-                  alignItems: 'center',
-                  background: isFirst ? 'rgba(197,160,82,0.06)' : index % 2 === 0 ? '#080818' : '#0a0a20',
-                  position: 'relative',
-                }}>
-                  {isFirst && (
-                    <div style={{
-                      position: 'absolute', left: 0, top: 0, bottom: 0, width: '3px',
-                      background: 'linear-gradient(180deg, #FBF091, #C5A052)',
-                    }} />
-                  )}
-
-                  {/* Rank */}
-                  <div style={{
-                    fontSize: rank <= 3 ? '14px' : '12px', fontWeight: 800,
-                    color: isFirst ? '#FBF091' : rank === 2 ? 'rgba(255,255,255,0.6)' : rank === 3 ? '#9a8060' : 'rgba(255,255,255,0.25)',
-                  }}>
-                    {String(rank).padStart(2, '0')}
-                  </div>
-
-                  {/* Player */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{
-                      width: '34px', height: '34px', borderRadius: '50%', flexShrink: 0,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '11px', fontWeight: 700,
-                      background: isFirst ? 'rgba(197,160,82,0.15)' : 'rgba(67,121,255,0.12)',
-                      color: isFirst ? '#FBF091' : '#4379FF',
-                      border: `1px solid ${isFirst ? 'rgba(197,160,82,0.35)' : 'rgba(67,121,255,0.3)'}`,
-                    }}>
-                      {entry.gdpr ? entry.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2) : '—'}
-                    </div>
-                    <div>
-                      {entry.gdpr ? (
-                        <Link href={`/players/${entry.player_id}`} style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff' }}>
-                          {entry.full_name}
-                        </Link>
-                      ) : (
-                        <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.2)', fontStyle: 'italic' }}>Anonymous Player</span>
+      ) : (
+        <>
+          {/* Top 3 Power Cards (Only on Page 1) */}
+          {showTopThreeCards && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 items-end">
+              {topThree.map((entry) => {
+                const isFirst = entry.absoluteRank === 1
+                return (
+                  <div 
+                    key={entry.player_id} 
+                    className={`relative group rounded-[28px] transition-all duration-500 ${
+                      isFirst 
+                        ? 'p-[2px] bg-gradient-to-b from-[#D4AF37] via-[#FBF091] to-transparent lg:-translate-y-4 shadow-[0_20px_50px_rgba(212,175,55,0.2)] hover:shadow-[0_20px_60px_rgba(212,175,55,0.35)]' 
+                        : 'p-[1px] bg-white/10 hover:bg-white/20 hover:-translate-y-2'
+                    }`}
+                  >
+                    <div className={`bg-[#0A0A10] rounded-[26px] flex flex-col justify-between relative overflow-hidden h-full ${
+                      isFirst ? 'p-10 min-h-[300px]' : 'p-8 min-h-[260px]'
+                    }`}>
+                      {isFirst && (
+                        <div className="absolute top-[-50%] right-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.15)_0%,transparent_50%)] animate-pulse pointer-events-none" />
                       )}
+                      
+                      <div className="relative z-10">
+                        <div className="flex justify-between items-start mb-6">
+                          <span className={`font-black italic drop-shadow-lg ${isFirst ? 'text-7xl text-gold-gradient' : 'text-5xl text-white/20'}`}>
+                            0{entry.absoluteRank}
+                          </span>
+                          {isFirst && (
+                            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#8B6914] flex items-center justify-center text-xl shadow-[0_0_20px_rgba(212,175,55,0.6)] border-2 border-[#FBF091]">
+                              👑
+                            </div>
+                          )}
+                        </div>
+                        
+                        {entry.gdpr ? (
+                          <Link href={`/players/${entry.player_id}`} className="block">
+                            <h4 className={`${isFirst ? 'text-3xl' : 'text-xl'} font-black mb-2 text-white group-hover:text-cyan-400 transition-colors drop-shadow-md`}>{entry.full_name}</h4>
+                          </Link>
+                        ) : (
+                          <h4 className={`${isFirst ? 'text-3xl' : 'text-xl'} font-black mb-2 text-white/40 italic`}>Anonymous</h4>
+                        )}
+                        
+                        <div className="flex gap-2 mb-8 mt-2">
+                           <span className="px-3 py-1 rounded-md bg-white/5 border border-white/10 text-[9px] uppercase tracking-widest font-bold text-white/60">
+                             {entry.result_count} Events
+                           </span>
+                        </div>
+                      </div>
+
+                      <div className="relative z-10">
+                        <div className={`font-black font-mono tracking-tight ${isFirst ? 'text-5xl text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'text-3xl text-white/90'}`}>
+                          {entry.total_points.toFixed(2)} <span className="text-sm text-white/30 font-sans tracking-widest uppercase">PTS</span>
+                        </div>
+                        <div className="h-[4px] w-full bg-black mt-5 relative overflow-hidden rounded-full shadow-inner">
+                          <div className={`absolute inset-0 bg-gradient-to-r ${isFirst ? 'from-[#D4AF37] via-[#FBF091] to-[#D4AF37] animate-shine' : activeGradient}`} style={{ width: isFirst ? '100%' : entry.absoluteRank === 2 ? '80%' : '65%' }}></div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-
-                  {/* Results */}
-                  <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', textAlign: 'right', fontWeight: 600 }}>
-                    {entry.result_count}
-                    {entry.result_count > 20 && activeLeague === 'npl' && (
-                      <span style={{ fontSize: '10px', color: '#4379FF', marginLeft: '4px' }}>
-                        +{entry.result_count - 20}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Best finish */}
-                  <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', textAlign: 'right', fontWeight: 600 }}>
-                    {entry.best_finish > 0 ? `${entry.best_finish}${ordinal(entry.best_finish)}` : '—'}
-                  </div>
-
-                  {/* Points */}
-                  <div style={{ fontSize: '15px', fontWeight: 800, textAlign: 'right', color: isFirst ? '#FBF091' : '#ffffff' }}>
-                    {entry.total_points.toFixed(2)}
-                  </div>
-                </div>
-              )
-            })
-          )}
-        </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '20px 0', marginTop: '8px',
-            borderTop: '1px solid rgba(255,255,255,0.06)',
-          }}>
-            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)' }}>
-              Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} players
-            </div>
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-              {['«', '‹'].map((label, i) => (
-                <button key={label} onClick={() => setPage(i === 0 ? 1 : p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  style={{
-                    width: '32px', height: '32px', borderRadius: '4px', border: '1px solid rgba(67,121,255,0.2)',
-                    background: 'transparent', color: page === 1 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)',
-                    fontSize: '14px', cursor: page === 1 ? 'not-allowed' : 'pointer',
-                  }}>{label}</button>
-              ))}
-              {getPageNumbers(page, totalPages).map((p, i) =>
-                p === '...' ? (
-                  <span key={`e${i}`} style={{ fontSize: '12px', color: 'rgba(255,255,255,0.25)', padding: '0 4px' }}>...</span>
-                ) : (
-                  <button key={p} onClick={() => setPage(p as number)} style={{
-                    width: '32px', height: '32px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer',
-                    border: page === p ? '1px solid #4379FF' : '1px solid rgba(67,121,255,0.2)',
-                    background: page === p ? '#1F1A5A' : 'transparent',
-                    color: page === p ? '#ffffff' : 'rgba(255,255,255,0.4)',
-                    fontWeight: page === p ? 700 : 400,
-                  }}>{p}</button>
                 )
-              )}
-              {['›', '»'].map((label, i) => (
-                <button key={label} onClick={() => setPage(i === 0 ? p => Math.min(totalPages, p + 1) : totalPages)}
-                  disabled={page === totalPages}
-                  style={{
-                    width: '32px', height: '32px', borderRadius: '4px', border: '1px solid rgba(67,121,255,0.2)',
-                    background: 'transparent', color: page === totalPages ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)',
-                    fontSize: '14px', cursor: page === totalPages ? 'not-allowed' : 'pointer',
-                  }}>{label}</button>
-              ))}
+              })}
             </div>
-          </div>
-        )}
-      </div>
+          )}
 
-      {/* Right sidebar */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-
-        {/* Prizes */}
-        {leaguePrizes.length > 0 && (
-          <div style={{ background: '#0d0d2a', border: '1px solid rgba(67,121,255,0.15)', borderRadius: '8px', padding: '20px' }}>
-            <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '16px' }}>
-              Season Prizes
-            </div>
-            {leaguePrizes.map((prize: any) => (
-              <div key={prize.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                <span style={{
-                  fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600,
-                  color: prize.position_from === 1 ? '#FBF091' : 'rgba(255,255,255,0.4)',
-                }}>
-                  {prize.position_from === prize.position_to
-                    ? `${prize.position_from}${ordinal(prize.position_from)} Place`
-                    : `${prize.position_from}${ordinal(prize.position_from)} – ${prize.position_to}${ordinal(prize.position_to)}`}
-                </span>
-                <span style={{
-                  fontWeight: 700, fontSize: prize.position_from === 1 ? '16px' : '14px',
-                  color: prize.position_from === 1 ? '#FBF091' : '#ffffff',
-                }}>
-                  {prize.prize_description}
-                </span>
+          {/* Paginated List (The Rest) */}
+          {theRest.length > 0 && (
+            <div className="glass-panel rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-t border-white/10 mb-8">
+              
+              {/* Desktop Table Header */}
+              <div className="hidden md:grid grid-cols-[80px_1fr_120px_120px] gap-4 p-6 border-b border-white/10 bg-white/5 text-[10px] uppercase tracking-[3px] font-black text-white/40">
+                <div className="text-center">Rank</div>
+                <div>Player</div>
+                <div className="text-center">Events</div>
+                <div className="text-right pr-4">Points</div>
               </div>
-            ))}
-          </div>
-        )}
-
-        {/* Stats */}
-        <div style={{ background: '#0d0d2a', border: '1px solid rgba(67,121,255,0.15)', borderRadius: '8px', padding: '20px' }}>
-          <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '16px' }}>
-            League Stats
-          </div>
-          {[
-            { label: 'Players on board', value: data.length },
-            { label: "Leader's points", value: data[0] ? data[0].total_points.toFixed(2) : '—' },
-            { label: "Leader's results", value: data[0] ? data[0].result_count : '—' },
-            { label: 'Average points', value: data.length > 0 ? (data.reduce((s: number, e: any) => s + e.total_points, 0) / data.length).toFixed(2) : '—' },
-          ].map(stat => (
-            <div key={stat.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-              <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>{stat.label}</span>
-              <span style={{ fontSize: '13px', color: '#ffffff', fontWeight: 700 }}>{stat.value}</span>
+              
+              <div className="bg-black/50 backdrop-blur-xl">
+                {theRest.map((entry) => {
+                  const isTopThree = entry.absoluteRank <= 3;
+                  
+                  return (
+                    <div 
+                      key={entry.player_id} 
+                      className={`group flex flex-col md:grid md:grid-cols-[80px_1fr_120px_120px] gap-4 p-5 md:items-center border-b border-white/5 last:border-0 hover:bg-gradient-to-r hover:from-white/5 hover:to-transparent transition-all relative`}
+                    >
+                      {/* Hover Glow Edge */}
+                      <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${isTopThree ? 'from-[#D4AF37] to-[#FBF091]' : activeGradient} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
+                      
+                      {/* Rank */}
+                      <div className="flex items-center md:justify-center pl-2 md:pl-0 mb-2 md:mb-0">
+                        <span className={`font-black italic transition-all ${
+                          isTopThree ? 'text-white/80 text-4xl md:text-3xl' : 'text-white/20 group-hover:text-white/50 text-2xl'
+                        }`}>
+                          {String(entry.absoluteRank).padStart(2, '0')}
+                        </span>
+                      </div>
+                      
+                      {/* Player Name */}
+                      <div className="pl-2 md:pl-0 flex items-center">
+                        {entry.gdpr ? (
+                          <Link href={`/players/${entry.player_id}`} className={`font-black tracking-tight hover:text-cyan-400 transition-colors ${
+                            isTopThree ? 'text-2xl md:text-xl text-white drop-shadow-md' : 'text-[15px] text-white/80 group-hover:text-white'
+                          }`}>
+                            {entry.full_name}
+                          </Link>
+                        ) : (
+                          <span className={`font-bold italic ${isTopThree ? 'text-lg text-white/60' : 'text-[15px] text-white/40'}`}>
+                            Anonymous Player
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Events */}
+                      <div className="hidden md:flex justify-center">
+                        <span className="text-[10px] text-white/40 uppercase tracking-widest font-bold bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+                          {entry.result_count} Events
+                        </span>
+                      </div>
+                      
+                      {/* Points & Mobile Events Data */}
+                      <div className="flex justify-between items-center md:justify-end w-full md:pr-4 pl-2 md:pl-0 mt-2 md:mt-0">
+                        <span className="md:hidden text-[10px] text-white/40 uppercase tracking-widest font-bold">
+                          {entry.result_count} Events
+                        </span>
+                        <span className={`font-mono font-black ${
+                          isTopThree ? 'text-2xl md:text-xl text-white bg-white/10 px-4 py-1.5 rounded-xl border border-white/10' : 
+                          'text-xl md:text-lg text-white bg-black/40 px-4 py-1.5 rounded-lg border border-white/5 group-hover:border-white/20 transition-colors'
+                        }`}>
+                          {entry.total_points.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
-          ))}
-        </div>
+          )}
 
-        {/* Top 3 */}
-        {data.length >= 3 && (
-          <div style={{ background: '#0d0d2a', border: '1px solid rgba(67,121,255,0.15)', borderRadius: '8px', padding: '20px' }}>
-            <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '16px' }}>
-              Top 3
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-6 mt-4">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-6 py-2.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-white/10 hover:border-cyan-400/50 disabled:opacity-30 disabled:hover:bg-white/5 disabled:hover:border-white/10 transition-all"
+              >
+                &lt; Prev
+              </button>
+              
+              <div className="text-[10px] font-black uppercase tracking-widest text-white/50">
+                Page <span className="text-white mx-1">{currentPage}</span> of <span className="text-white/80 mx-1">{totalPages}</span>
+              </div>
+              
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-6 py-2.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-white/10 hover:border-cyan-400/50 disabled:opacity-30 disabled:hover:bg-white/5 disabled:hover:border-white/10 transition-all"
+              >
+                Next &gt;
+              </button>
             </div>
-            {data.slice(0, 3).map((entry: any, i: number) => {
-              const colors = ['#FBF091', 'rgba(255,255,255,0.6)', '#9a8060']
-              const labels = ['1st', '2nd', '3rd']
-              return (
-                <div key={entry.player_id} style={{
-                  display: 'flex', alignItems: 'center', gap: '12px',
-                  padding: '10px 0', borderBottom: i < 2 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-                }}>
-                  <div style={{ fontSize: '13px', fontWeight: 800, color: colors[i], width: '28px', flexShrink: 0 }}>{labels[i]}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    {entry.gdpr ? (
-                      <Link href={`/players/${entry.player_id}`} style={{
-                        fontSize: '13px', color: '#ffffff', fontWeight: 700,
-                        display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}>
-                        {entry.full_name}
-                      </Link>
-                    ) : (
-                      <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.2)', fontStyle: 'italic' }}>Anonymous</span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: '14px', fontWeight: 800, color: colors[i], flexShrink: 0 }}>
-                    {entry.total_points.toFixed(2)}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
+          )}
+        </>
+      )}
     </div>
   )
-}
-
-function getPageNumbers(current: number, total: number): (number | string)[] {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
-  if (current <= 4) return [1, 2, 3, 4, 5, '...', total]
-  if (current >= total - 3) return [1, '...', total - 4, total - 3, total - 2, total - 1, total]
-  return [1, '...', current - 1, current, current + 1, '...', total]
-}
-
-function ordinal(n: number) {
-  const s = ['th', 'st', 'nd', 'rd']
-  const v = n % 100
-  return s[(v - 20) % 10] || s[v] || s[0]
 }

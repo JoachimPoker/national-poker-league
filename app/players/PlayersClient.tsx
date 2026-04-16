@@ -4,26 +4,26 @@ import Link from 'next/link'
 
 const PAGE_SIZE = 50
 
-export default function PlayersClient({ players, venues }: {
-  players: any[]
-  venues: string[]
-}) {
+export default function PlayersClient({ players, venues }: { players: any[], venues: string[] }) {
   const [search, setSearch] = useState('')
   const [venue, setVenue] = useState('')
   const [sortBy, setSortBy] = useState('points')
   const [page, setPage] = useState(1)
-  const [view, setView] = useState<'grid' | 'list'>('list')
+  const [view, setView] = useState<'list' | 'grid'>('list')
 
   const filtered = useMemo(() => {
     let result = [...players]
 
     if (search.trim()) {
       const q = search.toLowerCase().trim()
-      result = result.filter(p => p.full_name.toLowerCase().includes(q))
+      result = result.filter(p => {
+        const name = p.gdpr ? p.full_name.toLowerCase() : 'anonymous player'
+        return name.includes(q)
+      })
     }
 
     if (venue) {
-      result = result.filter(p => p.home_casino === venue)
+      result = result.filter(p => p.gdpr && p.home_casino === venue)
     }
 
     // Sort
@@ -31,14 +31,18 @@ export default function PlayersClient({ players, venues }: {
       if (sortBy === 'points') return b.total_points - a.total_points
       if (sortBy === 'results') return b.result_count - a.result_count
       if (sortBy === 'prize') return b.total_prize_money - a.total_prize_money
-      if (sortBy === 'name') return a.full_name.localeCompare(b.full_name)
+      if (sortBy === 'name') {
+        const nameA = a.gdpr ? a.full_name : 'Anonymous'
+        const nameB = b.gdpr ? b.full_name : 'Anonymous'
+        return nameA.localeCompare(nameB)
+      }
       return 0
     })
 
     return result
   }, [players, search, venue, sortBy])
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   function handleFilterChange(setter: (v: any) => void, value: any) {
@@ -53,290 +57,260 @@ export default function PlayersClient({ players, venues }: {
   }, [players])
 
   return (
-    <div>
-      {/* Controls */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 200px 200px auto',
-        gap: '12px', marginBottom: '24px', alignItems: 'end',
-      }}>
+    <div className="w-full">
+      {/* NEON CONTROLS PANEL */}
+      <div className="glass-panel p-6 rounded-3xl mb-8 flex flex-col lg:flex-row gap-6 lg:items-end">
+        
         {/* Search */}
-        <div>
-          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 700, marginBottom: '6px' }}>
-            Search player
-          </div>
+        <div className="flex-1">
+          <label className="block text-[10px] text-white/50 tracking-[3px] uppercase font-black mb-3 ml-1">Scout Player</label>
           <input
             type="text"
             value={search}
             onChange={e => handleFilterChange(setSearch, e.target.value)}
-            placeholder="Type a player name..."
-            style={{
-              width: '100%', background: '#0d0d2a',
-              border: '1px solid rgba(67,121,255,0.25)',
-              color: '#ffffff', padding: '10px 14px',
-              borderRadius: '6px', fontSize: '14px',
-            }}
+            placeholder="Enter player name..."
+            className="w-full bg-black/50 border border-white/10 text-white px-5 py-3 rounded-xl focus:outline-none focus:border-cyan-400 focus:shadow-[0_0_15px_rgba(0,243,255,0.2)] transition-all font-medium"
           />
         </div>
 
-        {/* Venue filter */}
-        <div>
-          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 700, marginBottom: '6px' }}>
-            Home venue
-          </div>
+        {/* Venue Filter */}
+        <div className="lg:w-64">
+          <label className="block text-[10px] text-white/50 tracking-[3px] uppercase font-black mb-3 ml-1">Home Venue</label>
           <select
             value={venue}
             onChange={e => handleFilterChange(setVenue, e.target.value)}
-            style={{
-              width: '100%', background: '#0d0d2a',
-              border: '1px solid rgba(67,121,255,0.25)',
-              color: venue ? '#ffffff' : 'rgba(255,255,255,0.35)',
-              padding: '10px 14px', borderRadius: '6px', fontSize: '13px',
-            }}
+            className="w-full bg-black/50 border border-white/10 text-white px-5 py-3 rounded-xl focus:outline-none focus:border-cyan-400 focus:shadow-[0_0_15px_rgba(0,243,255,0.2)] transition-all font-medium appearance-none cursor-pointer"
+            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'rgba(255,255,255,0.5)\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }}
           >
-            <option value="">All venues</option>
-            {venues.map(v => <option key={v} value={v}>{v}</option>)}
+            <option value="" className="bg-[#040408]">All Venues</option>
+            {venues.map(v => <option key={v} value={v} className="bg-[#040408]">{v}</option>)}
           </select>
         </div>
 
         {/* Sort */}
-        <div>
-          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 700, marginBottom: '6px' }}>
-            Sort by
-          </div>
+        <div className="lg:w-56">
+          <label className="block text-[10px] text-white/50 tracking-[3px] uppercase font-black mb-3 ml-1">Sort Index By</label>
           <select
             value={sortBy}
             onChange={e => handleFilterChange(setSortBy, e.target.value)}
-            style={{
-              width: '100%', background: '#0d0d2a',
-              border: '1px solid rgba(67,121,255,0.25)',
-              color: '#ffffff', padding: '10px 14px',
-              borderRadius: '6px', fontSize: '13px',
-            }}
+            className="w-full bg-black/50 border border-white/10 text-white px-5 py-3 rounded-xl focus:outline-none focus:border-cyan-400 focus:shadow-[0_0_15px_rgba(0,243,255,0.2)] transition-all font-medium appearance-none cursor-pointer"
+            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'rgba(255,255,255,0.5)\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }}
           >
-            <option value="points">NPL Points</option>
-            <option value="results">Most Results</option>
-            <option value="prize">Prize Money</option>
-            <option value="name">Name (A–Z)</option>
+            <option value="points" className="bg-[#040408]">NPL Points</option>
+            <option value="results" className="bg-[#040408]">Most Results</option>
+            <option value="prize" className="bg-[#040408]">Prize Money</option>
+            <option value="name" className="bg-[#040408]">Name (A–Z)</option>
           </select>
         </div>
 
-        {/* View toggle */}
-        <div>
-          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 700, marginBottom: '6px' }}>
-            View
-          </div>
-          <div style={{ display: 'flex', gap: '4px' }}>
-            {(['list', 'grid'] as const).map(v => (
-              <button
-                key={v}
-                onClick={() => setView(v)}
-                style={{
-                  padding: '10px 14px', borderRadius: '6px', cursor: 'pointer',
-                  background: view === v ? '#1F1A5A' : 'transparent',
-                  border: view === v ? '1px solid rgba(67,121,255,0.4)' : '1px solid rgba(67,121,255,0.2)',
-                  color: view === v ? '#ffffff' : 'rgba(255,255,255,0.35)',
-                  fontSize: '16px', fontWeight: 700,
-                }}
-              >
-                {v === 'list' ? '☰' : '⊞'}
-              </button>
-            ))}
-          </div>
+        {/* View Toggle */}
+        <div className="flex gap-2 h-[48px]">
+          <button
+            onClick={() => setView('list')}
+            className={`w-12 rounded-xl flex items-center justify-center transition-all ${view === 'list' ? 'bg-cyan-500/20 border border-cyan-400 text-cyan-400 shadow-[0_0_15px_rgba(0,243,255,0.2)]' : 'bg-black/50 border border-white/10 text-white/40 hover:text-white'}`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+          </button>
+          <button
+            onClick={() => setView('grid')}
+            className={`w-12 rounded-xl flex items-center justify-center transition-all ${view === 'grid' ? 'bg-cyan-500/20 border border-cyan-400 text-cyan-400 shadow-[0_0_15px_rgba(0,243,255,0.2)]' : 'bg-black/50 border border-white/10 text-white/40 hover:text-white'}`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+          </button>
         </div>
       </div>
 
-      {/* Results count + clear */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)' }}>
+      {/* Meta Bar */}
+      <div className="flex justify-between items-center mb-6 px-2">
+        <div className="text-[10px] text-white/50 tracking-[3px] uppercase font-black">
           {filtered.length === players.length
-            ? `${players.length} players`
-            : `${filtered.length} of ${players.length} players`}
+            ? `Displaying all ${players.length} contenders`
+            : `Found ${filtered.length} of ${players.length} contenders`}
         </div>
         {(search || venue) && (
           <button
             onClick={() => { setSearch(''); setVenue(''); setPage(1) }}
-            style={{
-              background: 'transparent', border: '1px solid rgba(67,121,255,0.25)',
-              color: 'rgba(255,255,255,0.5)', padding: '6px 14px', borderRadius: '4px',
-              fontSize: '11px', cursor: 'pointer',
-            }}
+            className="text-[10px] text-red-400 hover:text-red-300 tracking-[2px] uppercase font-black transition-colors"
           >
-            Clear filters ×
+            Clear Filters ×
           </button>
         )}
       </div>
 
-      {/* Player list view */}
+      {/* --- LIST VIEW --- */}
       {view === 'list' && (
-        <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(67,121,255,0.15)' }}>
+        <div className="glass-panel rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-t border-t-white/10">
           {/* Header */}
-          <div style={{
-            display: 'grid', gridTemplateColumns: '56px 1fr 100px 110px 120px',
-            padding: '11px 20px', background: '#0d0d2a',
-            borderBottom: '1px solid rgba(67,121,255,0.15)',
-          }}>
-            {['Rank', 'Player', 'Results', 'Points', 'Prize Money'].map((col, i) => (
-              <div key={col} style={{
-                fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase',
-                color: 'rgba(255,255,255,0.25)', textAlign: i >= 3 ? 'right' : 'left',
-              }}>
-                {col}
-              </div>
-            ))}
+          <div className="hidden md:grid grid-cols-[80px_1fr_100px_120px_140px] gap-4 p-6 border-b border-white/10 bg-white/5 text-[9px] uppercase tracking-[3px] font-black text-white/40">
+            <div className="text-center">Rank</div>
+            <div>Contender</div>
+            <div className="text-center">Results</div>
+            <div className="text-right">Points</div>
+            <div className="text-right pr-4">Earnings</div>
           </div>
 
-          {paginated.length === 0 ? (
-            <div style={{ padding: '60px 20px', textAlign: 'center', fontSize: '14px', color: 'rgba(255,255,255,0.25)', fontStyle: 'italic', background: '#080818' }}>
-              No players found
-            </div>
-          ) : (
-            paginated.map((player, index) => {
-              const rank = nplRankMap.get(player.player_id) || 0
-              const isFirst = rank === 1
-              return (
-                <Link key={player.player_id} href={`/players/${player.player_id}`}>
-                  <div style={{
-                    display: 'grid', gridTemplateColumns: '56px 1fr 160px 100px 110px 120px',
-                    padding: '13px 20px',
-                    borderBottom: '1px solid rgba(255,255,255,0.04)',
-                    alignItems: 'center',
-                    background: isFirst ? 'rgba(197,160,82,0.06)' : index % 2 === 0 ? '#080818' : '#0a0a20',
-                    position: 'relative',
-                    cursor: 'pointer',
-                  }}>
-                    {isFirst && (
-                      <div style={{
-                        position: 'absolute', left: 0, top: 0, bottom: 0, width: '3px',
-                        background: 'linear-gradient(180deg, #FBF091, #C5A052)',
-                      }} />
-                    )}
+          <div className="bg-black/50 backdrop-blur-xl">
+            {paginated.length === 0 ? (
+              <div className="p-16 text-center text-white/30 font-bold uppercase tracking-widest text-sm">No players found</div>
+            ) : (
+              paginated.map((player) => {
+                const rank = nplRankMap.get(player.player_id) || 0
+                const isFirst = rank === 1
+                const isTopTen = rank <= 10
+                const isAnonymous = !player.gdpr
+
+                const displayName = isAnonymous ? 'Anonymous Player' : player.full_name
+                const displayLocation = isAnonymous ? 'Location Hidden' : (player.home_casino || 'Location Unknown')
+                const initials = isAnonymous ? '?' : player.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)
+
+                const rowContent = (
+                  <>
+                    {/* Hover Glow Edge */}
+                    {!isAnonymous && <div className={`absolute left-0 top-0 bottom-0 w-1 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-b ${isFirst ? 'from-[#D4AF37] to-[#FBF091]' : 'from-cyan-400 to-blue-600'}`}></div>}
+                    {isFirst && <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#D4AF37] to-[#FBF091] shadow-[0_0_15px_rgba(212,175,55,0.6)]"></div>}
 
                     {/* Rank */}
-                    <div style={{
-                      fontSize: rank <= 3 ? '14px' : '12px', fontWeight: 800,
-                      color: isFirst ? '#FBF091' : rank === 2 ? 'rgba(255,255,255,0.6)' : rank === 3 ? '#9a8060' : 'rgba(255,255,255,0.25)',
-                    }}>
-                      {String(rank).padStart(2, '0')}
+                    <div className="flex items-center gap-4 md:justify-center pl-2 md:pl-0 mb-2 md:mb-0 relative z-10">
+                      <span className={`font-black italic transition-all ${isFirst ? 'text-gold-gradient drop-shadow-md text-4xl' : isTopTen ? 'text-white/80 text-2xl' : `text-white/30 text-xl ${!isAnonymous && 'group-hover:text-white/50'}`}`}>
+                        {String(rank).padStart(2, '0')}
+                      </span>
                     </div>
 
                     {/* Player */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{
-                        width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '12px', fontWeight: 700,
-                        background: isFirst ? 'rgba(197,160,82,0.15)' : 'rgba(67,121,255,0.12)',
-                        color: isFirst ? '#FBF091' : '#4379FF',
-                        border: `1px solid ${isFirst ? 'rgba(197,160,82,0.35)' : 'rgba(67,121,255,0.3)'}`,
-                      }}>
-                        {player.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                    <div className="pl-2 md:pl-0 flex items-center gap-4 relative z-10">
+                      <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-black border shadow-md ${isFirst ? 'bg-[#D4AF37]/20 text-[#FBF091] border-[#D4AF37]/40 shadow-[0_0_15px_rgba(212,175,55,0.3)]' : `bg-white/5 border-white/10 transition-colors ${!isAnonymous ? 'text-white/60 group-hover:border-cyan-500/50 group-hover:text-cyan-400' : 'text-white/20 border-white/5'}`}`}>
+                        {initials}
                       </div>
-                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff' }}>
-                        {player.full_name}
+                      <div>
+                        <div className={`font-black tracking-tight transition-colors block ${isFirst ? 'text-xl text-white drop-shadow-md' : `text-[15px] ${isAnonymous ? 'text-white/40 italic' : 'text-white/90 group-hover:text-white'}`}`}>
+                          {displayName}
+                        </div>
+                        <span className="text-[9px] text-white/40 uppercase tracking-widest font-bold">
+                          {displayLocation}
+                        </span>
                       </div>
                     </div>
 
                     {/* Results */}
-                    <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', textAlign: 'right', fontWeight: 600 }}>
-                      {player.result_count}
+                    <div className="hidden md:flex justify-center relative z-10">
+                      <span className={`text-[10px] text-white/40 uppercase tracking-widest font-bold bg-white/5 px-3 py-1.5 rounded-lg border transition-colors ${!isAnonymous ? 'border-white/5 group-hover:border-white/10' : 'border-transparent'}`}>
+                        {player.result_count} Events
+                      </span>
                     </div>
 
                     {/* Points */}
-                    <div style={{ fontSize: '15px', fontWeight: 800, textAlign: 'right', color: isFirst ? '#FBF091' : '#ffffff' }}>
-                      {player.total_points.toFixed(2)}
+                    <div className="flex justify-between items-center md:justify-end w-full pl-2 md:pl-0 mt-2 md:mt-0 relative z-10">
+                      <span className="md:hidden text-[10px] text-white/40 uppercase tracking-widest font-bold">Points</span>
+                      <span className={`font-mono font-black ${isFirst ? 'text-2xl text-gold-gradient' : 'text-xl text-white/90'}`}>
+                        {player.total_points.toFixed(2)}
+                      </span>
                     </div>
 
-                    {/* Prize money */}
-                    <div style={{ fontSize: '13px', fontWeight: 600, textAlign: 'right', color: 'rgba(255,255,255,0.55)' }}>
-                      {player.total_prize_money > 0 ? `£${player.total_prize_money.toLocaleString()}` : '—'}
+                    {/* Prize Money */}
+                    <div className="flex justify-between items-center md:justify-end w-full md:pr-4 pl-2 md:pl-0 relative z-10">
+                      <span className="md:hidden text-[10px] text-white/40 uppercase tracking-widest font-bold">Earnings</span>
+                      <span className={`font-black ${player.total_prize_money > 0 ? (isFirst ? 'text-xl text-white drop-shadow-md' : 'text-lg text-emerald-400') : 'text-white/20 italic text-sm'}`}>
+                        {player.total_prize_money > 0 ? `£${player.total_prize_money.toLocaleString()}` : '—'}
+                      </span>
                     </div>
-                  </div>
-                </Link>
-              )
-            })
-          )}
+                  </>
+                )
+
+                if (isAnonymous) {
+                  return (
+                    <div key={player.player_id} className={`flex flex-col md:grid md:grid-cols-[80px_1fr_100px_120px_140px] gap-4 p-5 md:items-center border-b border-white/5 last:border-0 relative ${isFirst ? 'bg-gradient-to-r from-[#D4AF37]/10 to-transparent' : ''}`}>
+                      {rowContent}
+                    </div>
+                  )
+                }
+
+                return (
+                  <Link key={player.player_id} href={`/players/${player.player_id}`} className={`group flex flex-col md:grid md:grid-cols-[80px_1fr_100px_120px_140px] gap-4 p-5 md:items-center border-b border-white/5 last:border-0 hover:bg-gradient-to-r hover:from-white/5 hover:to-transparent transition-all relative ${isFirst ? 'bg-gradient-to-r from-[#D4AF37]/10 to-transparent' : ''}`}>
+                    {rowContent}
+                  </Link>
+                )
+              })
+            )}
+          </div>
         </div>
       )}
 
-      {/* Player grid view */}
+      {/* --- GRID VIEW --- */}
       {view === 'grid' && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-          gap: '12px',
-        }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {paginated.length === 0 ? (
-            <div style={{ gridColumn: '1/-1', padding: '60px 20px', textAlign: 'center', fontSize: '14px', color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>
-              No players found
-            </div>
+            <div className="col-span-full glass-panel p-16 text-center text-white/30 font-bold uppercase tracking-widest text-sm rounded-3xl border-dashed border-2 border-white/10">No players found</div>
           ) : (
             paginated.map(player => {
               const rank = nplRankMap.get(player.player_id) || 0
               const isFirst = rank === 1
-              return (
-                <Link key={player.player_id} href={`/players/${player.player_id}`}>
-                  <div style={{
-                    background: '#0d0d2a',
-                    border: `1px solid ${isFirst ? 'rgba(197,160,82,0.3)' : 'rgba(67,121,255,0.15)'}`,
-                    borderRadius: '8px', padding: '20px',
-                    cursor: 'pointer', position: 'relative', overflow: 'hidden',
-                  }}>
-                    {isFirst && (
-                      <div style={{
-                        position: 'absolute', top: 0, left: 0, right: 0, height: '3px',
-                        background: 'linear-gradient(90deg, #C5A052, #FBF091, #C5A052)',
-                      }} />
-                    )}
+              const isAnonymous = !player.gdpr
 
-                    {/* Avatar + rank */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
-                      <div style={{
-                        width: '48px', height: '48px', borderRadius: '50%',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '16px', fontWeight: 800,
-                        background: isFirst ? 'rgba(197,160,82,0.15)' : 'rgba(67,121,255,0.12)',
-                        color: isFirst ? '#FBF091' : '#4379FF',
-                        border: `2px solid ${isFirst ? 'rgba(197,160,82,0.35)' : 'rgba(67,121,255,0.3)'}`,
-                      }}>
-                        {player.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+              const displayName = isAnonymous ? 'Anonymous Player' : player.full_name
+              const displayLocation = isAnonymous ? 'Location Hidden' : (player.home_casino || 'Location Unknown')
+              const initials = isAnonymous ? '?' : player.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)
+
+              const cardContent = (
+                <div className={`relative bg-[#0A0A10] h-full rounded-[23px] p-6 flex flex-col justify-between overflow-hidden ${isAnonymous ? 'opacity-80' : ''}`}>
+                  {/* Glowing Core for #1 */}
+                  {isFirst && <div className="absolute top-[-50%] right-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.15)_0%,transparent_50%)] animate-pulse pointer-events-none" />}
+
+                  <div>
+                    <div className="flex justify-between items-start mb-6 relative z-10">
+                      <div className={`w-14 h-14 rounded-full flex items-center justify-center text-lg font-black border-2 shadow-lg ${isFirst ? 'bg-[#D4AF37]/20 text-[#FBF091] border-[#FBF091] shadow-[0_0_15px_rgba(212,175,55,0.4)]' : `bg-white/5 transition-all ${!isAnonymous ? 'text-cyan-400 border-cyan-400/30 group-hover:border-cyan-400 group-hover:shadow-[0_0_15px_rgba(0,243,255,0.4)]' : 'text-white/30 border-white/10'}`}`}>
+                        {initials}
                       </div>
-                      <div style={{
-                        fontSize: '13px', fontWeight: 800,
-                        color: isFirst ? '#FBF091' : 'rgba(255,255,255,0.25)',
-                      }}>
+                      <div className={`font-black italic drop-shadow-md ${isFirst ? 'text-4xl text-gold-gradient' : `text-3xl text-white/20 transition-colors ${!isAnonymous && 'group-hover:text-white/40'}`}`}>
                         #{rank}
                       </div>
                     </div>
 
-                    {/* Name */}
-                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#ffffff', marginBottom: '4px', lineHeight: 1.3 }}>
-                      {player.full_name}
-                    </div>
-
-                    {/* Stats */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '14px' }}>
-                      <div>
-                        <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '3px' }}>Points</div>
-                        <div style={{ fontSize: '16px', fontWeight: 900, color: isFirst ? '#FBF091' : '#ffffff' }}>
-                          {player.total_points.toFixed(2)}
-                        </div>
+                    <div className="relative z-10">
+                      <h4 className={`font-black text-xl mb-1 leading-tight ${isFirst ? 'text-white' : `text-white/90 ${isAnonymous ? 'italic text-white/50' : 'group-hover:text-white'}`}`}>{displayName}</h4>
+                      <div className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-6">
+                        {displayLocation}
                       </div>
-                      <div>
-                        <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '3px' }}>Results</div>
-                        <div style={{ fontSize: '16px', fontWeight: 900, color: '#ffffff' }}>
-                          {player.result_count}
-                        </div>
+                    </div>
+                  </div>
+
+                  <div className="relative z-10 border-t border-white/10 pt-5 grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-[9px] text-white/40 uppercase tracking-[2px] font-bold mb-1">Points</div>
+                      <div className={`font-mono font-black ${isFirst ? 'text-2xl text-gold-gradient' : 'text-xl text-white'}`}>
+                        {player.total_points.toFixed(2)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[9px] text-white/40 uppercase tracking-[2px] font-bold mb-1">Results</div>
+                      <div className="font-mono font-black text-xl text-white">
+                        {player.result_count}
                       </div>
                     </div>
                     {player.total_prize_money > 0 && (
-                      <div style={{ marginTop: '8px' }}>
-                        <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '3px' }}>Prize Money</div>
-                        <div style={{ fontSize: '14px', fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>
+                      <div className="col-span-2 pt-2 border-t border-white/5">
+                        <div className="text-[9px] text-white/40 uppercase tracking-[2px] font-bold mb-1">Earnings</div>
+                        <div className={`font-black ${isFirst ? 'text-lg text-white' : 'text-lg text-emerald-400'}`}>
                           £{player.total_prize_money.toLocaleString()}
                         </div>
                       </div>
                     )}
                   </div>
+                </div>
+              )
+
+              if (isAnonymous) {
+                return (
+                  <div key={player.player_id} className="relative block rounded-3xl p-[1px] bg-white/10 cursor-default">
+                    {isFirst && <div className="absolute inset-0 bg-gradient-to-b from-[#D4AF37] to-[#FBF091] rounded-3xl shadow-[0_0_20px_rgba(212,175,55,0.5)]"></div>}
+                    {cardContent}
+                  </div>
+                )
+              }
+
+              return (
+                <Link key={player.player_id} href={`/players/${player.player_id}`} className="group relative block rounded-3xl p-[1px] bg-white/10 hover:bg-gradient-to-b hover:from-cyan-400 hover:to-blue-600 transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_15px_30px_rgba(0,243,255,0.2)]">
+                  {isFirst && <div className="absolute inset-0 bg-gradient-to-b from-[#D4AF37] to-[#FBF091] rounded-3xl shadow-[0_0_20px_rgba(212,175,55,0.5)]"></div>}
+                  {cardContent}
                 </Link>
               )
             })
@@ -344,32 +318,31 @@ export default function PlayersClient({ players, venues }: {
         </div>
       )}
 
-      {/* Pagination */}
+      {/* --- PAGINATION --- */}
       {totalPages > 1 && (
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '24px 0', marginTop: '8px',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
-        }}>
-          <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)' }}>
-            Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} players
+        <div className="flex flex-col md:flex-row items-center justify-between mt-12 pt-8 border-t border-white/10 gap-6">
+          <div className="text-[10px] text-white/50 tracking-[3px] uppercase font-black">
+            Displaying {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
           </div>
-          <div style={{ display: 'flex', gap: '6px' }}>
+          
+          <div className="flex gap-2">
             <PageBtn onClick={() => setPage(1)} disabled={page === 1} label="«" />
             <PageBtn onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} label="‹" />
+            
             {getPageNumbers(page, totalPages).map((p, i) =>
               p === '...' ? (
-                <span key={`e${i}`} style={{ fontSize: '12px', color: 'rgba(255,255,255,0.25)', padding: '0 6px', lineHeight: '32px' }}>...</span>
+                <span key={`e${i}`} className="w-10 flex items-center justify-center text-white/30 font-bold">...</span>
               ) : (
-                <button key={p} onClick={() => setPage(p as number)} style={{
-                  width: '32px', height: '32px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer',
-                  border: page === p ? '1px solid #4379FF' : '1px solid rgba(67,121,255,0.2)',
-                  background: page === p ? '#1F1A5A' : 'transparent',
-                  color: page === p ? '#ffffff' : 'rgba(255,255,255,0.4)',
-                  fontWeight: page === p ? 700 : 400,
-                }}>{p}</button>
+                <button 
+                  key={p} 
+                  onClick={() => setPage(p as number)} 
+                  className={`w-10 h-10 rounded-xl text-sm font-black transition-all ${page === p ? 'bg-cyan-500/20 border border-cyan-400 text-cyan-400 shadow-[0_0_15px_rgba(0,243,255,0.2)]' : 'bg-black/50 border border-white/10 text-white/40 hover:border-white/30 hover:text-white'}`}
+                >
+                  {p}
+                </button>
               )
             )}
+            
             <PageBtn onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} label="›" />
             <PageBtn onClick={() => setPage(totalPages)} disabled={page === totalPages} label="»" />
           </div>
@@ -381,18 +354,19 @@ export default function PlayersClient({ players, venues }: {
 
 function PageBtn({ onClick, disabled, label }: { onClick: () => void, disabled: boolean, label: string }) {
   return (
-    <button onClick={onClick} disabled={disabled} style={{
-      width: '32px', height: '32px', borderRadius: '4px',
-      border: '1px solid rgba(67,121,255,0.2)', background: 'transparent',
-      color: disabled ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)',
-      fontSize: '14px', cursor: disabled ? 'not-allowed' : 'pointer',
-    }}>{label}</button>
+    <button 
+      onClick={onClick} 
+      disabled={disabled} 
+      className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-black transition-all ${disabled ? 'bg-black/20 border border-white/5 text-white/10 cursor-not-allowed' : 'bg-black/50 border border-white/10 text-white/40 hover:border-cyan-400 hover:text-cyan-400'}`}
+    >
+      {label}
+    </button>
   )
 }
 
 function getPageNumbers(current: number, total: number): (number | string)[] {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
-  if (current <= 4) return [1, 2, 3, 4, 5, '...', total]
-  if (current >= total - 3) return [1, '...', total - 4, total - 3, total - 2, total - 1, total]
+  if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1)
+  if (current <= 3) return [1, 2, 3, 4, '...', total]
+  if (current >= total - 2) return [1, '...', total - 3, total - 2, total - 1, total]
   return [1, '...', current - 1, current, current + 1, '...', total]
 }
