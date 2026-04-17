@@ -88,7 +88,7 @@ export default function UploadPage() {
     formData.append('seasonId', selectedSeason.toString()) // Changed from season_id to seasonId
 
     try {
-      const res = await fetch('/api/admin/upload', {
+      const res = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       })

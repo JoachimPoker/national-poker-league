@@ -1,106 +1,152 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { 
-  autoAwardBadges, 
-  autoAwardAllPlayers,
-  updatePlayerLifetimeStats,
-  updateAllPlayerLifetimeStats,
-  awardSeasonRankingBadges,
-  awardSeasonSuperlatives,
-  calculatePlayerBadges
-} from '@/lib/badge-calculator'
+import { supabaseAdmin } from '@/lib/supabase'
+import { updatePlayerLifetimeStats, autoAwardBadges } from '@/lib/badge-calculator'
 
-// GET /api/admin/badge-operations?action=...
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url)
-  const action = searchParams.get('action')
-  const playerId = searchParams.get('player_id')
+// In-memory progress store (in production, use Redis or similar)
+const progressStore = new Map<string, {
+  total: number
+  current: number
+  status: string
+  completed: boolean
+  error?: string
+  result?: any
+}>()
 
+export async function POST(request: NextRequest) {
   try {
-    switch (action) {
-      case 'calculate':
-        if (!playerId) {
-          return NextResponse.json({ error: 'player_id required' }, { status: 400 })
-        }
-        const badges = await calculatePlayerBadges(parseInt(playerId))
-        return NextResponse.json({ badges })
+    const { action } = await request.json()
+    
+    // Generate unique job ID
+    const jobId = `${action}-${Date.now()}`
+    
+    // Initialize progress
+    progressStore.set(jobId, {
+      total: 0,
+      current: 0,
+      status: 'Starting...',
+      completed: false
+    })
 
-      case 'stats':
-        // Return stats about badge system
-        const { data: totalBadges } = await supabaseAdmin
-          .from('badge_definitions')
-          .select('id', { count: 'exact' })
-        
-        const { data: totalAwarded } = await supabaseAdmin
-          .from('player_badges')
-          .select('id', { count: 'exact' })
-
-        const { data: playersWithBadges } = await supabaseAdmin
-          .from('player_badges')
-          .select('player_id')
-        
-        const uniquePlayers = new Set(playersWithBadges?.map(b => b.player_id) || []).size
-
-        return NextResponse.json({
-          totalBadgeTypes: totalBadges?.length || 0,
-          totalBadgesAwarded: totalAwarded?.length || 0,
-          playersWithBadges: uniquePlayers
+    // Start the job in background
+    if (action === 'update_stats_all') {
+      runUpdateStatsJob(jobId).catch(err => {
+        progressStore.set(jobId, {
+          ...progressStore.get(jobId)!,
+          completed: true,
+          error: err.message
         })
-
-      default:
-        return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
+      })
+    } else if (action === 'auto_award_all') {
+      runAutoAwardJob(jobId).catch(err => {
+        progressStore.set(jobId, {
+          ...progressStore.get(jobId)!,
+          completed: true,
+          error: err.message
+        })
+      })
     }
+
+    return NextResponse.json({ success: true, jobId })
+
   } catch (error: any) {
+    console.error('Badge operation error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
 
-// POST /api/admin/badge-operations
-export async function POST(request: NextRequest) {
-  const body = await request.json()
-  const { action, player_id, season_year, league } = body
-
-  try {
-    switch (action) {
-      case 'auto_award_single':
-        if (!player_id) {
-          return NextResponse.json({ error: 'player_id required' }, { status: 400 })
-        }
-        const result = await autoAwardBadges(player_id)
-        return NextResponse.json(result)
-
-      case 'auto_award_all':
-        const allResult = await autoAwardAllPlayers()
-        return NextResponse.json(allResult)
-
-      case 'update_stats_single':
-        if (!player_id) {
-          return NextResponse.json({ error: 'player_id required' }, { status: 400 })
-        }
-        await updatePlayerLifetimeStats(player_id)
-        return NextResponse.json({ success: true })
-
-      case 'update_stats_all':
-        const updated = await updateAllPlayerLifetimeStats()
-        return NextResponse.json({ playersUpdated: updated })
-
-      case 'award_season_rankings':
-        if (!season_year) {
-          return NextResponse.json({ error: 'season_year required' }, { status: 400 })
-        }
-        const rankingsAwarded = await awardSeasonRankingBadges(season_year, league || 'npl')
-        return NextResponse.json({ awarded: rankingsAwarded })
-
-      case 'award_season_superlatives':
-        if (!season_year) {
-          return NextResponse.json({ error: 'season_year required' }, { status: 400 })
-        }
-        const superlativesAwarded = await awardSeasonSuperlatives(season_year)
-        return NextResponse.json({ awarded: superlativesAwarded })
-
-      default:
-        return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
-    }
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+export async function GET(request: NextRequest) {
+  const jobId = request.nextUrl.searchParams.get('jobId')
+  
+  if (!jobId) {
+    return NextResponse.json({ error: 'Job ID required' }, { status: 400 })
   }
+
+  const progress = progressStore.get(jobId)
+  
+  if (!progress) {
+    return NextResponse.json({ error: 'Job not found' }, { status: 404 })
+  }
+
+  return NextResponse.json(progress)
+}
+
+async function runUpdateStatsJob(jobId: string) {
+  // Fetch all players with GDPR consent
+  const { data: players, error } = await supabaseAdmin
+    .from('players')
+    .select('id')
+    .eq('gdpr', true)
+
+  if (error) throw error
+
+  const total = players?.length || 0
+  progressStore.set(jobId, {
+    total,
+    current: 0,
+    status: `Updating stats for ${total} players...`,
+    completed: false
+  })
+
+  let updated = 0
+  for (const player of players || []) {
+    await updatePlayerLifetimeStats(player.id)
+    updated++
+    
+    progressStore.set(jobId, {
+      total,
+      current: updated,
+      status: `Updated ${updated} of ${total} players...`,
+      completed: false
+    })
+  }
+
+  progressStore.set(jobId, {
+    total,
+    current: updated,
+    status: 'Complete!',
+    completed: true,
+    result: { playersUpdated: updated }
+  })
+}
+
+async function runAutoAwardJob(jobId: string) {
+  // Fetch all players with GDPR consent
+  const { data: players, error } = await supabaseAdmin
+    .from('players')
+    .select('id')
+    .eq('gdpr', true)
+
+  if (error) throw error
+
+  const total = players?.length || 0
+  progressStore.set(jobId, {
+    total,
+    current: 0,
+    status: `Awarding badges to ${total} players...`,
+    completed: false
+  })
+
+  let processed = 0
+  let totalBadgesAwarded = 0
+
+  for (const player of players || []) {
+    const result = await autoAwardBadges(player.id)
+    totalBadgesAwarded += result.awarded.length
+    processed++
+    
+    progressStore.set(jobId, {
+      total,
+      current: processed,
+      status: `Processed ${processed} of ${total} players (${totalBadgesAwarded} badges awarded)...`,
+      completed: false
+    })
+  }
+
+  progressStore.set(jobId, {
+    total,
+    current: processed,
+    status: 'Complete!',
+    completed: true,
+    result: { playersProcessed: processed, badgesAwarded: totalBadgesAwarded }
+  })
 }

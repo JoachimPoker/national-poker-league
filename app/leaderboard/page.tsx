@@ -6,12 +6,37 @@ import LeaderboardClient from './LeaderboardClient'
 
 export const revalidate = 300
 
-export default async function LeaderboardPage() {
-  // Fetch current active season
-  const { data: season } = await supabase.from('seasons').select('*').eq('is_active', true).single()
+export default async function LeaderboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ season?: string }>
+}) {
+  // Read season from URL query parameter (e.g., ?season=2)
+  const params = await searchParams
+  const requestedSeasonId = params.season ? parseInt(params.season) : null
+
+  // If a specific season was requested, fetch that season
+  // Otherwise, fetch the current active season
+  let season
+  if (requestedSeasonId) {
+    const { data } = await supabase
+      .from('seasons')
+      .select('*')
+      .eq('id', requestedSeasonId)
+      .single()
+    season = data
+  } else {
+    const { data } = await supabase
+      .from('seasons')
+      .select('*')
+      .eq('is_active', true)
+      .single()
+    season = data
+  }
+
   const seasonId = season?.id || 1
 
-  // Fetch all leaderboards concurrently
+  // Fetch all leaderboards concurrently for the selected season
   const [nplBoard, hrBoard, lrBoard] = await Promise.all([
     getNPLLeaderboard(seasonId),
     getHighRollerLeaderboard(seasonId),

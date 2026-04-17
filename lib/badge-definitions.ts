@@ -1,4 +1,5 @@
-import { supabase } from './supabase'
+// lib/badge-definitions.ts
+// Badge types, calculations, and utilities (client-safe)
 
 export type BadgeTier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond' | 'legendary'
 
@@ -94,22 +95,6 @@ export interface PlayerStats {
   uniqueCashVenues: string[]
   allVenues: string[]
   manualBadges: string[]
-}
-
-// Fetch badge definitions from database
-export async function getBadgeDefinitions(): Promise<BadgeDefinition[]> {
-  const { data, error } = await supabase
-    .from('badge_definitions')
-    .select('*')
-    .eq('is_active', true)
-    .order('display_order', { ascending: true })
-
-  if (error) {
-    console.error('Error fetching badge definitions:', error)
-    return []
-  }
-
-  return data || []
 }
 
 // Check if a badge is earned based on its condition
@@ -245,9 +230,8 @@ function calculateProgress(badge: BadgeDefinition, stats: PlayerStats): { progre
 }
 
 // Main function to calculate all badges for a player
-export async function calculateBadges(stats: PlayerStats): Promise<Badge[]> {
-  const definitions = await getBadgeDefinitions()
-  
+// Now accepts badge definitions as parameter instead of fetching them
+export function calculateBadges(stats: PlayerStats, definitions: BadgeDefinition[]): Badge[] {
   return definitions.map(def => {
     const earned = checkBadgeCondition(def, stats)
     const { progress, label } = earned ? {} : calculateProgress(def, stats)

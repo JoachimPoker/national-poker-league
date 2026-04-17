@@ -46,13 +46,24 @@ export interface BadgeProgress {
  */
 export async function calculatePlayerBadges(playerId: number): Promise<BadgeProgress[]> {
   // Get player stats
-  const { data: player } = await supabaseAdmin
+  const { data: playerData } = await supabaseAdmin
     .from('players')
     .select('id, full_name, lifetime_wins, lifetime_cashes, lifetime_money_won, lifetime_final_tables, lifetime_events_played')
     .eq('id', playerId)
     .single()
 
-  if (!player) throw new Error('Player not found')
+  if (!playerData) throw new Error('Player not found')
+
+  // Map to PlayerStats interface
+  const player: PlayerStats = {
+    player_id: playerData.id,
+    full_name: playerData.full_name,
+    lifetime_wins: playerData.lifetime_wins,
+    lifetime_cashes: playerData.lifetime_cashes,
+    lifetime_money_won: playerData.lifetime_money_won,
+    lifetime_final_tables: playerData.lifetime_final_tables,
+    lifetime_events_played: playerData.lifetime_events_played
+  }
 
   // Get all active badge definitions
   const { data: badgeDefs } = await supabaseAdmin
@@ -146,14 +157,25 @@ export async function autoAwardBadges(playerId: number): Promise<{ awarded: stri
   const alreadyHad: string[] = []
 
   // Get player stats
-  const { data: player } = await supabaseAdmin
+  const { data: playerData } = await supabaseAdmin
     .from('players')
     .select('id, full_name, lifetime_wins, lifetime_cashes, lifetime_money_won, lifetime_final_tables, lifetime_events_played, gdpr')
     .eq('id', playerId)
     .single()
 
-  if (!player) throw new Error('Player not found')
-  if (!player.gdpr) return { awarded, alreadyHad } // Respect GDPR
+  if (!playerData) throw new Error('Player not found')
+  if (!playerData.gdpr) return { awarded, alreadyHad } // Respect GDPR
+
+  // Map to PlayerStats interface
+  const player: PlayerStats = {
+    player_id: playerData.id,
+    full_name: playerData.full_name,
+    lifetime_wins: playerData.lifetime_wins,
+    lifetime_cashes: playerData.lifetime_cashes,
+    lifetime_money_won: playerData.lifetime_money_won,
+    lifetime_final_tables: playerData.lifetime_final_tables,
+    lifetime_events_played: playerData.lifetime_events_played
+  }
 
   // Get all progressive badge definitions
   const { data: badgeDefs } = await supabaseAdmin
@@ -337,16 +359,16 @@ export async function autoAwardAllPlayers(): Promise<{ totalAwarded: number, pla
 export async function updatePlayerLifetimeStats(playerId: number): Promise<void> {
   const { data: results } = await supabaseAdmin
     .from('results')
-    .select('position, prize, tournament_id')
+    .select('finish_position, prize_amount, event_id')
     .eq('player_id', playerId)
 
   if (!results) return
 
-  const lifetime_events_played = new Set(results.map(r => r.tournament_id)).size
-  const lifetime_wins = results.filter(r => r.position === 1).length
-  const lifetime_cashes = results.filter(r => r.prize > 0).length
-  const lifetime_money_won = results.reduce((sum, r) => sum + (r.prize || 0), 0)
-  const lifetime_final_tables = results.filter(r => r.position <= 9).length
+  const lifetime_events_played = new Set(results.map(r => r.event_id)).size
+  const lifetime_wins = results.filter(r => r.finish_position === 1).length
+  const lifetime_cashes = results.filter(r => r.prize_amount > 0).length
+  const lifetime_money_won = results.reduce((sum, r) => sum + (r.prize_amount || 0), 0)
+  const lifetime_final_tables = results.filter(r => r.finish_position <= 9).length
 
   await supabaseAdmin
     .from('players')
