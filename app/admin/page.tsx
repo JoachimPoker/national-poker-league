@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
+import BadgeInitSection from './BadgeInitSection'
 
 export default async function AdminDashboard() {
   const { data: season } = await supabase
@@ -79,6 +80,9 @@ export default async function AdminDashboard() {
           </Link>
         ))}
       </div>
+
+      {/* Badge Initialization Section */}
+      <BadgeInitSection />
 
     </div>
   )

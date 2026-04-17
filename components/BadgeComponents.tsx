@@ -1,129 +1,215 @@
 'use client'
-import { Badge, TIER_COLORS } from '@/lib/badge-definitions'
+import { Badge, TIER_COLORS, getTopBadges } from '@/lib/badge-definitions'
 
 export default function BadgeGrid({ badges }: { badges: Badge[] }) {
-  const categories = [...new Set(badges.map(b => b.category))]
+  // Show top 3 earned badges prominently
+  const topBadges = getTopBadges(badges, 3)
+  const hasBadges = badges.some(b => b.earned)
+
+  if (!hasBadges) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-6xl mb-4 opacity-20">🏆</div>
+        <div className="text-sm text-white/40 uppercase tracking-widest font-bold">
+          No badges earned yet
+        </div>
+        <div className="text-xs text-white/30 mt-2">
+          Play tournaments to unlock achievements
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="flex flex-col gap-8">
-      {categories.map(cat => (
-        <div key={cat} className="relative">
-          <div className="text-[10px] font-black text-cyan-400/80 tracking-[4px] uppercase mb-5 border-b border-white/10 pb-2 drop-shadow-[0_0_8px_rgba(34,211,238,0.3)]">
-            {cat}
-          </div>
-          <div className="flex flex-wrap gap-6">
-            {badges.filter(b => b.category === cat).map(badge => (
-              <BadgeHex key={badge.key} badge={badge} />
-            ))}
-          </div>
+    <div className="space-y-6">
+      {/* Featured Top Badges */}
+      {topBadges.length > 0 && (
+        <div className="grid grid-cols-3 gap-3 mb-8">
+          {topBadges.map(badge => {
+            const colors = TIER_COLORS[badge.tier] || TIER_COLORS.bronze
+            return (
+              <div
+                key={badge.key}
+                className="relative flex flex-col items-center p-4 rounded-xl border backdrop-blur-md group hover:-translate-y-1 transition-all cursor-help"
+                style={{
+                  backgroundColor: colors.bg,
+                  borderColor: colors.border,
+                  boxShadow: `inset 0 0 20px ${colors.bg}, ${colors.glow}`
+                }}
+                title={badge.desc}
+              >
+                {/* Glow */}
+                <div 
+                  className="absolute inset-0 blur-xl rounded-xl opacity-40 group-hover:opacity-60 -z-10 transition-opacity"
+                  style={{ backgroundColor: colors.color }}
+                />
+                
+                {/* Icon */}
+                <div className="text-3xl mb-2 filter drop-shadow-lg">
+                  {badge.icon}
+                </div>
+                
+                {/* Name */}
+                <div 
+                  className="text-[10px] font-black text-center uppercase tracking-wider"
+                  style={{ color: colors.color }}
+                >
+                  {badge.name}
+                </div>
+                
+                {/* Tier */}
+                <div 
+                  className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest border"
+                  style={{
+                    backgroundColor: colors.color,
+                    borderColor: colors.border,
+                    color: '#000',
+                  }}
+                >
+                  {badge.tier}
+                </div>
+              </div>
+            )
+          })}
         </div>
-      ))}
+      )}
+
+      {/* Badge Stats */}
+      <div className="flex justify-between items-center text-xs text-white/40 uppercase tracking-widest font-bold mb-4 pb-3 border-b border-white/10">
+        <span>{badges.filter(b => b.earned).length} Earned</span>
+        <span>{badges.length} Total</span>
+      </div>
+
+      {/* All Badges by Category */}
+      <div className="space-y-4">
+        {getCategories(badges).map(cat => {
+          const categoryBadges = badges.filter(b => b.category === cat)
+          const earnedCount = categoryBadges.filter(b => b.earned).length
+          
+          return (
+            <details key={cat} className="group" open={earnedCount > 0}>
+              <summary className="flex justify-between items-center cursor-pointer list-none p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all border border-white/5">
+                <div className="flex items-center gap-3">
+                  <span className="text-cyan-400/80 text-[10px] font-black uppercase tracking-[3px]">
+                    {cat}
+                  </span>
+                  <span className="text-[9px] text-white/30 font-mono">
+                    {earnedCount}/{categoryBadges.length}
+                  </span>
+                </div>
+                <span className="text-white/40 group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              
+              <div className="mt-3 grid grid-cols-4 gap-2 pl-2">
+                {categoryBadges.map(badge => (
+                  <MiniBadgeCard key={badge.key} badge={badge} />
+                ))}
+              </div>
+            </details>
+          )
+        })}
+      </div>
     </div>
   )
 }
 
-function BadgeHex({ badge }: { badge: Badge }) {
-  const colors = TIER_COLORS[badge.tier]
+function MiniBadgeCard({ badge }: { badge: Badge }) {
+  const colors = TIER_COLORS[badge.tier] || TIER_COLORS.bronze
   const dim = !badge.earned
 
   return (
     <div
-      className={`group flex flex-col items-center gap-2.5 w-[90px] relative transition-all duration-500 ${
-        dim ? 'opacity-50 hover:opacity-80' : 'opacity-100 hover:-translate-y-1'
+      className={`relative flex flex-col items-center p-2 rounded-lg border backdrop-blur-md transition-all cursor-help ${
+        dim 
+          ? 'bg-black/40 border-white/5 opacity-40 hover:opacity-70' 
+          : 'hover:-translate-y-1'
       }`}
-      title={badge.earned ? badge.desc : `${badge.desc} — not yet earned`}
+      style={{
+        backgroundColor: dim ? undefined : colors.bg,
+        borderColor: dim ? undefined : colors.border,
+        boxShadow: dim ? undefined : `0 0 10px ${colors.bg}`
+      }}
+      title={`${badge.name} - ${badge.desc}`}
     >
-      {/* Hexagon shape & Glow */}
-      <div className="relative flex items-center justify-center cursor-help">
-        
-        {/* Ambient Glow for Earned Badges */}
-        {!dim && (
-          <div 
-            className="absolute inset-0 blur-[15px] rounded-full opacity-60 pointer-events-none transition-opacity group-hover:opacity-100"
-            style={{ backgroundColor: colors.color }}
-          />
-        )}
+      {/* Icon */}
+      <div 
+        className="text-2xl mb-1"
+        style={{ filter: dim ? 'grayscale(100%)' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}
+      >
+        {badge.icon}
+      </div>
+      
+      {/* Name */}
+      <div 
+        className="text-[8px] font-bold text-center leading-tight"
+        style={{ color: badge.earned ? colors.color : 'rgba(255,255,255,0.2)' }}
+      >
+        {badge.name}
+      </div>
 
-        {/* The Hexagon */}
+      {/* Progress Bar for Unearned */}
+      {!badge.earned && badge.progress !== undefined && (
+        <div className="w-full mt-1">
+          <div className="h-0.5 bg-black/60 rounded-full overflow-hidden">
+            <div 
+              className="h-full rounded-full transition-all"
+              style={{ 
+                width: `${badge.progress}%`, 
+                backgroundColor: colors.color,
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Checkmark for Earned */}
+      {badge.earned && (
         <div 
-          className="w-[64px] h-[72px] relative flex items-center justify-center transition-all shadow-inner"
+          className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center border"
           style={{
-            clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-            background: dim ? 'rgba(0, 0, 0, 0.6)' : colors.bg,
-            border: dim ? '1px solid rgba(255,255,255,0.05)' : `1px solid ${colors.border}`
+            backgroundColor: colors.color,
+            borderColor: colors.border,
           }}
         >
-          <span 
-            className={`transition-all ${badge.icon.length > 1 ? 'text-2xl' : 'text-3xl'}`}
-            style={{ filter: dim ? 'grayscale(100%) opacity(40%)' : 'drop-shadow(0 4px 6px rgba(0,0,0,0.5))' }}
-          >
-            {badge.icon}
-          </span>
-
-          {/* Earned indicator dot */}
-          {badge.earned && (
-            <div 
-              className="absolute bottom-2 right-3 w-2.5 h-2.5 rounded-full border border-[#0A0A10] shadow-[0_0_8px_currentColor]"
-              style={{ backgroundColor: colors.color, color: colors.color }}
-            />
-          )}
+          <span className="text-black text-[8px] font-black">✓</span>
         </div>
-      </div>
-
-      <div className="flex flex-col items-center w-full">
-        {/* Badge name */}
-        <div 
-          className="text-[11px] font-black text-center leading-tight tracking-tight mb-1"
-          style={{ color: badge.earned ? colors.color : 'rgba(255,255,255,0.4)' }}
-        >
-          {badge.name}
-        </div>
-
-        {/* Tier label */}
-        <div 
-          className="text-[8px] text-center tracking-[2px] font-bold uppercase"
-          style={{ color: badge.earned ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.2)' }}
-        >
-          {badge.tier}
-        </div>
-
-        {/* Progress bar for unearned tiered badges */}
-        {!badge.earned && badge.progress !== undefined && (
-          <div className="w-full mt-2">
-            <div className="h-1 bg-black/80 border border-white/10 rounded-full overflow-hidden">
-              <div 
-                className="h-full rounded-full transition-all duration-1000 shadow-[0_0_10px_currentColor] opacity-70 group-hover:opacity-100"
-                style={{ width: `${badge.progress}%`, backgroundColor: colors.color, color: colors.color }}
-              />
-            </div>
-            <div className="text-[8px] color-white/30 text-center mt-1.5 uppercase tracking-widest font-black text-white/30 group-hover:text-white/50 transition-colors">
-              {badge.progressLabel}
-            </div>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   )
 }
 
-// Compact chip badges for leaderboard rows
+function getCategories(badges: Badge[]): string[] {
+  const categoryOrder = ['Wins', 'Cashes', 'Money', 'Final Tables', 'Events Played', 'Special']
+  const categories = [...new Set(badges.map(b => b.category))]
+  return categories.sort((a, b) => {
+    const aIndex = categoryOrder.indexOf(a)
+    const bIndex = categoryOrder.indexOf(b)
+    if (aIndex === -1) return 1
+    if (bIndex === -1) return -1
+    return aIndex - bIndex
+  })
+}
+
+// Compact badge chips for leaderboard rows
 export function BadgeChips({ badges }: { badges: Badge[] }) {
+  if (badges.length === 0) return null
+
   return (
     <div className="flex flex-wrap gap-2">
       {badges.map(badge => {
-        const colors = TIER_COLORS[badge.tier]
+        const colors = TIER_COLORS[badge.tier] || TIER_COLORS.bronze
         return (
           <div
             key={badge.key}
-            title={badge.name}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md backdrop-blur-md shadow-sm transition-transform hover:scale-105 cursor-help"
+            title={`${badge.name} - ${badge.desc}`}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg backdrop-blur-md shadow-md transition-all hover:scale-110 cursor-help border"
             style={{
               background: colors.bg,
               borderColor: colors.border,
-              borderWidth: '1px'
+              boxShadow: `0 0 10px ${colors.bg}`
             }}
           >
-            <span className="text-xs filter drop-shadow-sm">{badge.icon}</span>
+            <span className="text-sm filter drop-shadow-sm">{badge.icon}</span>
             <span 
               className="text-[9px] font-black tracking-widest uppercase drop-shadow-sm"
               style={{ color: colors.color }}
