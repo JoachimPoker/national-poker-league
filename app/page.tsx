@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { getNPLLeaderboard, getHighRollerLeaderboard, getLowRollerLeaderboard } from '@/lib/calculations'
+import { getNPLLeaderboard, getHighRollerLeaderboard, getLowRollerLeaderboard, scrubAnonymous } from '@/lib/calculations'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import HomeLeaderboard from '@/components/HomeLeaderboard'
@@ -11,7 +11,7 @@ export default async function HomePage() {
   const { data: season } = await supabase.from('seasons').select('*').eq('is_active', true).single()
   const seasonId = season?.id || 1
 
-  const [nplBoard, hrBoard, lrBoard, eventsRes, newsRes] = await Promise.all([
+  const [nplBoardRaw, hrBoardRaw, lrBoardRaw, eventsRes, newsRes] = await Promise.all([
     getNPLLeaderboard(seasonId),
     getHighRollerLeaderboard(seasonId),
     getLowRollerLeaderboard(seasonId),
@@ -19,13 +19,17 @@ export default async function HomePage() {
     supabase.from('news').select('*').order('published_at', { ascending: false }).limit(4),
   ])
 
+  // Scrub non-GDPR data BEFORE passing to client component
+  const nplBoard = scrubAnonymous(nplBoardRaw)
+  const hrBoard = scrubAnonymous(hrBoardRaw)
+  const lrBoard = scrubAnonymous(lrBoardRaw)
+
   const events = eventsRes.data || []
   const news = newsRes.data || []
 
   return (
     <div className="min-h-screen bg-[#040408] text-white flex flex-col font-sans relative overflow-hidden">
       
-      {/* GLOBAL AMBIENT LIGHTING & GRID */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute inset-0 casino-grid opacity-40"></div>
         <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-blue-600/20 rounded-full blur-[150px] animate-float mix-blend-screen"></div>
@@ -35,19 +39,14 @@ export default async function HomePage() {
       <div className="relative z-10 flex flex-col min-h-screen">
         <Navbar />
 
-        {/* VIBRANT HERO SECTION - Image Restored */}
         <section className="relative min-h-[550px] flex items-center justify-center border-b border-white/10 mb-12 shadow-[0_10px_50px_rgba(0,0,0,0.5)]">
           
-          {/* Restored Hero Image Background with Vignette */}
           <div className="absolute inset-0 z-0">
             <div className="absolute inset-0 bg-[url(/hero.jpg)] bg-cover bg-[center_35%] opacity-50" />
-            {/* Top to Bottom fade */}
             <div className="absolute inset-0 bg-gradient-to-b from-[#040408]/90 via-[#040408]/20 to-[#040408]" />
-            {/* Side to Side fade for framing */}
             <div className="absolute inset-0 bg-gradient-to-r from-[#040408]/80 via-transparent to-[#040408]/80" />
           </div>
 
-          {/* Intense Hero Center Glow overlaying the image */}
           <div className="absolute z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[300px] bg-gradient-to-r from-blue-600/40 via-cyan-400/30 to-purple-600/40 blur-[100px] pointer-events-none mix-blend-screen" />
 
           <div className="relative z-20 text-center max-w-5xl px-6 py-12 mt-6">
@@ -75,7 +74,6 @@ export default async function HomePage() {
               </Link>
             </div>
 
-            {/* Vibrant Stats Bar */}
             <div className="flex justify-center items-center pt-8">
               {[
                 { value: '1,670', label: 'Active Players', color: 'from-cyan-400 to-blue-500' },
@@ -93,7 +91,6 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* BODY */}
         <main className="flex-1 max-w-[1400px] mx-auto w-full px-6 md:px-12 pb-24">
           
           <section className="mb-16">
@@ -106,10 +103,8 @@ export default async function HomePage() {
             <HomeLeaderboard npl={nplBoard.slice(0, 8)} hr={hrBoard.slice(0, 8)} lr={lrBoard.slice(0, 8)} />
           </section>
 
-          {/* BOTTOM GRID */}
           <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
-            {/* Events */}
             <div className="glass-panel p-8 rounded-3xl h-full border-t border-t-white/10">
               <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-4">
                 <span className="text-[11px] font-black text-white/60 tracking-[4px] uppercase">Recent Events</span>
@@ -128,7 +123,6 @@ export default async function HomePage() {
               </div>
             </div>
 
-            {/* Leagues */}
             <div className="glass-panel p-8 rounded-3xl h-full border-t border-t-white/10 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 blur-[80px] rounded-full pointer-events-none"></div>
               <span className="block text-[11px] font-black text-white/60 tracking-[4px] uppercase mb-8 border-b border-white/10 pb-4 relative z-10">The Leagues</span>
@@ -145,7 +139,6 @@ export default async function HomePage() {
               ))}
             </div>
 
-            {/* News */}
             <div className="glass-panel p-8 rounded-3xl h-full border-t border-t-white/10">
               <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-4">
                 <span className="text-[11px] font-black text-white/60 tracking-[4px] uppercase">The Wire</span>

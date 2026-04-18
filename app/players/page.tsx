@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { getNPLLeaderboard } from '@/lib/calculations'
+import { getNPLLeaderboard, scrubAnonymous } from '@/lib/calculations'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import PlayersClient from './PlayersClient'
@@ -15,23 +15,20 @@ export default async function PlayersPage() {
 
   const seasonId = season?.id || 1
 
-  // Get full NPL leaderboard
   const nplBoard = await getNPLLeaderboard(seasonId)
 
-  // Get unique venues for filter dropdown (Only extract from GDPR players to prevent leaking data)
   const venues = [...new Set(
     nplBoard
       .filter(e => e.gdpr && e.home_casino)
       .map(e => e.home_casino)
   )].sort()
 
-  // We now pass the entire board, including Anonymous players
-  const players = nplBoard
+  // Scrub non-GDPR data BEFORE passing to client component
+  const players = scrubAnonymous(nplBoard)
 
   return (
     <div className="min-h-screen bg-[#040408] text-white flex flex-col font-sans relative overflow-hidden">
       
-      {/* GLOBAL AMBIENT LIGHTING & GRID */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute inset-0 casino-grid opacity-40"></div>
         <div className="absolute top-[10%] left-[-10%] w-[50vw] h-[50vw] bg-cyan-600/10 rounded-full blur-[150px] animate-float mix-blend-screen"></div>
@@ -41,7 +38,6 @@ export default async function PlayersPage() {
       <div className="relative z-10 flex flex-col min-h-screen">
         <Navbar />
 
-        {/* HEADER SECTION */}
         <section className="relative bg-black/40 border-b border-white/10 pt-16 pb-12 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl">
           <div className="max-w-[1400px] mx-auto px-6 md:px-12">
             
@@ -60,7 +56,6 @@ export default async function PlayersPage() {
               The complete directory of active contenders across the National Poker League circuit. Search, filter, and scout the competition.
             </p>
 
-            {/* Quick Stats */}
             <div className="flex gap-12 pt-8 border-t border-white/10">
               <div>
                 <div className="text-4xl font-black mb-1 text-white drop-shadow-md">{players.length}</div>
@@ -75,7 +70,6 @@ export default async function PlayersPage() {
           </div>
         </section>
 
-        {/* MAIN DIRECTORY APP */}
         <main className="flex-1 max-w-[1400px] mx-auto w-full px-6 md:px-12 py-16">
           <PlayersClient players={players} venues={venues} />
         </main>

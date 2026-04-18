@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { getNPLLeaderboard, getHighRollerLeaderboard, getLowRollerLeaderboard } from '@/lib/calculations'
+import { getNPLLeaderboard, getHighRollerLeaderboard, getLowRollerLeaderboard, scrubAnonymous } from '@/lib/calculations'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import LeaderboardClient from './LeaderboardClient'
@@ -11,12 +11,9 @@ export default async function LeaderboardPage({
 }: {
   searchParams: Promise<{ season?: string }>
 }) {
-  // Read season from URL query parameter (e.g., ?season=2)
   const params = await searchParams
   const requestedSeasonId = params.season ? parseInt(params.season) : null
 
-  // If a specific season was requested, fetch that season
-  // Otherwise, fetch the current active season
   let season
   if (requestedSeasonId) {
     const { data } = await supabase
@@ -36,17 +33,20 @@ export default async function LeaderboardPage({
 
   const seasonId = season?.id || 1
 
-  // Fetch all leaderboards concurrently for the selected season
-  const [nplBoard, hrBoard, lrBoard] = await Promise.all([
+  const [nplBoardRaw, hrBoardRaw, lrBoardRaw] = await Promise.all([
     getNPLLeaderboard(seasonId),
     getHighRollerLeaderboard(seasonId),
     getLowRollerLeaderboard(seasonId),
   ])
 
+  // Scrub non-GDPR data BEFORE passing to client component
+  const nplBoard = scrubAnonymous(nplBoardRaw)
+  const hrBoard = scrubAnonymous(hrBoardRaw)
+  const lrBoard = scrubAnonymous(lrBoardRaw)
+
   return (
     <div className="min-h-screen bg-[#040408] text-white flex flex-col font-sans relative overflow-hidden">
       
-      {/* GLOBAL AMBIENT LIGHTING & GRID */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute inset-0 casino-grid opacity-40"></div>
         <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-cyan-600/20 rounded-full blur-[150px] animate-float mix-blend-screen"></div>
@@ -57,7 +57,6 @@ export default async function LeaderboardPage({
         <Navbar />
 
         <main className="flex-1 max-w-[1200px] mx-auto w-full px-6 md:px-12 py-16">
-          {/* Header */}
           <div className="text-center mb-16">
             <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase mb-4 drop-shadow-[0_0_20px_rgba(0,0,0,0.8)]">
               The <span className="text-gold-gradient drop-shadow-[0_0_15px_rgba(212,175,55,0.4)]">Vault</span>
@@ -67,7 +66,6 @@ export default async function LeaderboardPage({
             </p>
           </div>
 
-          {/* Interactive Client List */}
           <LeaderboardClient npl={nplBoard} hr={hrBoard} lr={lrBoard} />
         </main>
         
