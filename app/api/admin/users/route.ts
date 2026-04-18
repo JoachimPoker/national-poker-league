@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import bcrypt from 'bcryptjs'
+import { requireAdmin } from '@/lib/auth'
 
 export async function GET() {
+  const authError = await requireAdmin()
+  if (authError) return authError
+
   const { data: users } = await supabaseAdmin
     .from('admin_users')
     .select('id, name, email, created_at')
@@ -12,6 +16,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const authError = await requireAdmin()
+  if (authError) return authError
+
   const body = await request.json()
   const { name, email, password } = body
 
@@ -40,6 +47,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const authError = await requireAdmin()
+  if (authError) return authError
+
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
 

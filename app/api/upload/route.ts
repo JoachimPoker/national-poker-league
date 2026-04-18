@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import * as XLSX from 'xlsx'
 import { updatePlayerLifetimeStats, autoAwardBadges } from '@/lib/badge-calculator'
+import { requireAdmin } from '@/lib/auth'
 
 // In-memory progress store
 const uploadProgressStore = new Map<string, {
@@ -14,6 +15,9 @@ const uploadProgressStore = new Map<string, {
 }>()
 
 export async function POST(request: NextRequest) {
+  const authError = await requireAdmin()
+  if (authError) return authError
+
   const jobId = `upload-${Date.now()}`
   
   try {
@@ -57,6 +61,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const authError = await requireAdmin()
+  if (authError) return authError
+
   const jobId = request.nextUrl.searchParams.get('jobId')
   
   if (!jobId) {

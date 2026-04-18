@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { requireAdmin } from '@/lib/auth'
 
 export async function GET() {
+  const authError = await requireAdmin()
+  if (authError) return authError
+
   const { data: seasons } = await supabaseAdmin
     .from('seasons')
     .select('*')
@@ -11,6 +15,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const authError = await requireAdmin()
+  if (authError) return authError
+
   const body = await request.json()
   const { name, year, npl_rule, is_active } = body
 
@@ -27,16 +34,17 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const authError = await requireAdmin()
+  if (authError) return authError
+
   const body = await request.json()
   const { id } = body
 
-  // Set all seasons to inactive first
   await supabaseAdmin
     .from('seasons')
     .update({ is_active: false })
     .neq('id', 0)
 
-  // Set the selected one to active
   const { error } = await supabaseAdmin
     .from('seasons')
     .update({ is_active: true })

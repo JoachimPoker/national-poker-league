@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers'
+import { getAdminSession } from '@/lib/auth'
 import LogoutButton from './LogoutButton'
 import Link from 'next/link'
 
@@ -7,9 +7,7 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  const cookieStore = await cookies()
-  const session = cookieStore.get('npl_admin_session')
-  const user = session ? JSON.parse(session.value) : null
+  const user = await getAdminSession()
 
   return (
     <div className="min-h-screen bg-[#040408] text-white font-sans selection:bg-cyan-500/30">

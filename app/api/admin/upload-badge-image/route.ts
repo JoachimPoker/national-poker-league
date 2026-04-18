@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/auth'
 
-// Initialize Supabase client with service role key for admin operations
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // Use service role for storage operations
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
 const BUCKET_NAME = 'badge-images'
 
 export async function POST(request: NextRequest) {
+  const authError = await requireAdmin()
+  if (authError) return authError
+
   try {
     const formData = await request.formData()
     const file = formData.get('file') as File
@@ -18,7 +21,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    // Validate file type
     const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif', 'image/svg+xml']
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json({ 
@@ -26,26 +28,22 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Validate file size (max 2MB)
-    const maxSize = 2 * 1024 * 1024 // 2MB
+    const maxSize = 2 * 1024 * 1024
     if (file.size > maxSize) {
       return NextResponse.json({ 
         error: 'File too large. Maximum size is 2MB' 
       }, { status: 400 })
     }
 
-    // Create unique filename
     const timestamp = Date.now()
     const random = Math.random().toString(36).substring(2, 8)
     const extension = file.name.split('.').pop()
     const filename = `badge-${timestamp}-${random}.${extension}`
     const filepath = `badges/${filename}`
 
-    // Convert file to ArrayBuffer
     const arrayBuffer = await file.arrayBuffer()
 
-    // Upload to Supabase Storage
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from(BUCKET_NAME)
       .upload(filepath, arrayBuffer, {
         contentType: file.type,
@@ -60,7 +58,6 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    // Get public URL
     const { data: { publicUrl } } = supabase.storage
       .from(BUCKET_NAME)
       .getPublicUrl(filepath)
@@ -80,8 +77,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE endpoint to remove uploaded images
 export async function DELETE(request: NextRequest) {
+  const authError = await requireAdmin()
+  if (authError) return authError
+
   try {
     const { searchParams } = new URL(request.url)
     const filepath = searchParams.get('filepath')
@@ -90,7 +89,6 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Filepath required' }, { status: 400 })
     }
 
-    // Delete from Supabase Storage
     const { error } = await supabase.storage
       .from(BUCKET_NAME)
       .remove([filepath])

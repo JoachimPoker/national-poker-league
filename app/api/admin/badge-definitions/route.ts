@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { requireAdmin } from '@/lib/auth'
 
 export async function GET() {
+  const authError = await requireAdmin()
+  if (authError) return authError
+
   const { data: badges } = await supabaseAdmin
     .from('badge_definitions')
     .select('*')
@@ -11,6 +15,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const authError = await requireAdmin()
+  if (authError) return authError
+
   const body = await request.json()
   const { key, name, description, icon, image_url, tier, category, condition_type, condition_value, display_order } = body
 
@@ -25,14 +32,10 @@ export async function POST(request: NextRequest) {
   const { error } = await supabaseAdmin
     .from('badge_definitions')
     .insert({
-      key,
-      name,
-      description,
+      key, name, description,
       icon: icon || null,
       image_url: image_url || null,
-      tier,
-      category,
-      condition_type,
+      tier, category, condition_type,
       condition_value: condition_value || {},
       is_active: true,
       display_order: display_order || 999
@@ -49,6 +52,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const authError = await requireAdmin()
+  if (authError) return authError
+
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
   const body = await request.json()
@@ -57,7 +63,6 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'ID required' }, { status: 400 })
   }
 
-  // If only toggling active state
   if (body.is_active !== undefined && Object.keys(body).length === 1) {
     const { error } = await supabaseAdmin
       .from('badge_definitions')
@@ -68,7 +73,6 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ success: true })
   }
 
-  // Full update
   const { name, description, icon, image_url, tier, category, condition_type, condition_value, display_order } = body
 
   if (!name || !description || !tier || !category || !condition_type) {
@@ -82,13 +86,10 @@ export async function PATCH(request: NextRequest) {
   const { error } = await supabaseAdmin
     .from('badge_definitions')
     .update({
-      name,
-      description,
+      name, description,
       icon: icon || null,
       image_url: image_url || null,
-      tier,
-      category,
-      condition_type,
+      tier, category, condition_type,
       condition_value: condition_value || {},
       display_order: display_order || 999,
       updated_at: new Date().toISOString()
@@ -100,6 +101,9 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const authError = await requireAdmin()
+  if (authError) return authError
+
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
 

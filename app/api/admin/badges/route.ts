@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { requireAdmin } from '@/lib/auth'
 
-// GET - Fetch all active badges
 export async function GET() {
+  const authError = await requireAdmin()
+  if (authError) return authError
+
   try {
     const { data: badges, error } = await supabaseAdmin
       .from('badge_definitions')
@@ -22,8 +25,10 @@ export async function GET() {
   }
 }
 
-// POST - Create new badge
 export async function POST(request: Request) {
+  const authError = await requireAdmin()
+  if (authError) return authError
+
   try {
     const badge = await request.json()
 
@@ -54,8 +59,10 @@ export async function POST(request: Request) {
   }
 }
 
-// PATCH - Update badge
 export async function PATCH(request: Request) {
+  const authError = await requireAdmin()
+  if (authError) return authError
+
   try {
     const { id, updates } = await request.json()
 

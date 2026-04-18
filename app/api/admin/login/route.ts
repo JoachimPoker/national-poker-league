@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import bcrypt from 'bcryptjs'
-import { cookies } from 'next/headers'
+import { createSessionToken, setSessionCookie } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   const { email, password } = await request.json()
@@ -10,7 +10,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Email and password required' }, { status: 400 })
   }
 
-  // Find admin user
   const { data: user } = await supabaseAdmin
     .from('admin_users')
     .select('*')
@@ -21,25 +20,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
   }
 
-  // Check password
   const valid = await bcrypt.compare(password, user.password_hash)
   if (!valid) {
     return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
   }
 
-  // Set session cookie
-  const cookieStore = await cookies()
-  cookieStore.set('npl_admin_session', JSON.stringify({
+  // Sign a JWT and set it as the session cookie
+  const token = await createSessionToken({
     id: user.id,
     email: user.email,
     name: user.name,
-  }), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7,
-    path: '/',
   })
+  await setSessionCookie(token)
 
   return NextResponse.json({ success: true, redirect: '/admin' })
 }
