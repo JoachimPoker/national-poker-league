@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import BadgeGrid from '@/components/BadgeComponents'
+import BadgeShowcase from '@/components/BadgeShowcase'
 import type { Badge } from '@/lib/badge-definitions'
 
 interface Season {
@@ -184,34 +184,34 @@ export default function PlayerClient({
           </div>
         </div>
 
-        {/* TROPHY CABINET - Full Width */}
-        <div className="mb-12">
-          <div className="glass-panel p-6 rounded-3xl border-t border-t-white/10 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 blur-[40px] rounded-full pointer-events-none"></div>
-            <h3 className="text-[11px] font-black text-white/60 tracking-[4px] uppercase mb-6 border-b border-white/10 pb-3 relative z-10">
-              Trophy Cabinet
-            </h3>
-            <div className="relative z-10">
-              <BadgeGrid badges={badges} />
+        {/* TWO COLUMN LAYOUT - Sidebar + Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+          
+          {/* LEFT SIDEBAR: Trophy Cabinet */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-6">
+              <BadgeShowcase badges={badges} playerId={player.id} />
             </div>
           </div>
-        </div>
 
-        {/* SEASON BREAKDOWN - Clickable */}
-        <div className="mb-12">
-          <div className="flex justify-between items-end mb-6 border-b border-white/10 pb-4">
-            <h2 className="text-[11px] font-black text-white/60 tracking-[4px] uppercase">
-              Season History
-            </h2>
-            {selectedSeasonId && (
-              <button
-                onClick={() => setSelectedSeasonId(null)}
-                className="text-[9px] text-cyan-400 hover:text-cyan-300 uppercase tracking-widest font-bold transition-colors"
-              >
-                ← Show All Seasons
-              </button>
-            )}
-          </div>
+          {/* RIGHT COLUMN: Season + Tournament History */}
+          <div className="lg:col-span-2 space-y-12">
+            
+            {/* SEASON BREAKDOWN - Clickable */}
+            <div>
+              <div className="flex justify-between items-end mb-6 border-b border-white/10 pb-4">
+                <h2 className="text-[11px] font-black text-white/60 tracking-[4px] uppercase">
+                  Season History
+                </h2>
+                {selectedSeasonId && (
+                  <button
+                    onClick={() => setSelectedSeasonId(null)}
+                    className="text-[9px] text-cyan-400 hover:text-cyan-300 uppercase tracking-widest font-bold transition-colors"
+                  >
+                    ← Show All Seasons
+                  </button>
+                )}
+              </div>
           <div className="glass-panel rounded-3xl overflow-hidden">
             {/* Desktop Header */}
             <div className="hidden md:grid grid-cols-[1fr_100px_80px_120px_100px] gap-4 p-5 border-b border-white/10 bg-white/5 text-[9px] uppercase tracking-[3px] font-black text-white/40">
@@ -270,12 +270,12 @@ export default function PlayerClient({
                 )
               })}
             </div>
-          </div>
-        </div>
+              </div>
+            </div>
 
-        {/* TOURNAMENT HISTORY - Filtered */}
-        <div>
-          <div className="flex justify-between items-end mb-4 border-b border-white/10 pb-4">
+          {/* TOURNAMENT HISTORY - Filtered */}
+          <div>
+            <div className="flex justify-between items-end mb-4 border-b border-white/10 pb-4">
             <h3 className="text-[11px] font-black text-white/60 tracking-[4px] uppercase">
               {selectedSeasonId 
                 ? `${seasonStats.find(s => s.season.id === selectedSeasonId)?.season.name} Tournament History`
@@ -353,6 +353,9 @@ export default function PlayerClient({
             </div>
           </div>
         </div>
+
+          </div> {/* Close RIGHT COLUMN */}
+        </div> {/* Close GRID */}
 
       </main>
     </>

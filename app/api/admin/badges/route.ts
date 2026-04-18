@@ -1,40 +1,78 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 
+// GET - Fetch all active badges
 export async function GET() {
-  const { data: badges } = await supabaseAdmin
-    .from('player_badges')
-    .select('*, players(full_name)')
-    .order('awarded_at', { ascending: false })
-  return NextResponse.json({ badges: badges || [] })
-}
+  try {
+    const { data: badges, error } = await supabaseAdmin
+      .from('badge_definitions')
+      .select('*')
+      .eq('is_active', true)
+      .order('category', { ascending: true })
+      .order('tier', { ascending: true })
 
-export async function POST(request: NextRequest) {
-  const body = await request.json()
-  const { player_id, badge_key, badge_name, season_year, awarded_by } = body
+    if (error) {
+      return NextResponse.json({ error: 'Failed to fetch badges' }, { status: 500 })
+    }
 
-  if (!player_id || !badge_key || !badge_name) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    return NextResponse.json({ badges })
+  } catch (error) {
+    console.error('Fetch badges error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-
-  const { error } = await supabaseAdmin
-    .from('player_badges')
-    .upsert({ player_id, badge_key, badge_name, season_year, awarded_by }, { onConflict: 'player_id,badge_key' })
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ success: true })
 }
 
-export async function DELETE(request: NextRequest) {
-  const { searchParams } = new URL(request.url)
-  const id = searchParams.get('id')
-  if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
+// POST - Create new badge
+export async function POST(request: Request) {
+  try {
+    const badge = await request.json()
 
-  const { error } = await supabaseAdmin
-    .from('player_badges')
-    .delete()
-    .eq('id', parseInt(id))
+    const { data, error } = await supabaseAdmin
+      .from('badge_definitions')
+      .insert({
+        key: badge.key,
+        name: badge.name,
+        description: badge.description,
+        icon: badge.icon,
+        tier: badge.tier,
+        category: badge.category,
+        condition_type: badge.condition_type,
+        condition_value: badge.condition_value,
+        is_active: true
+      })
+      .select()
+      .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ success: true })
+    if (error) {
+      return NextResponse.json({ error: 'Failed to create badge' }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true, badge: data })
+  } catch (error) {
+    console.error('Create badge error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+// PATCH - Update badge
+export async function PATCH(request: Request) {
+  try {
+    const { id, updates } = await request.json()
+
+    const { data, error } = await supabaseAdmin
+      .from('badge_definitions')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      return NextResponse.json({ error: 'Failed to update badge' }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true, badge: data })
+  } catch (error) {
+    console.error('Update badge error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }
