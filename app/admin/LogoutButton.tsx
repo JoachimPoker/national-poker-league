@@ -13,13 +13,7 @@ export default function LogoutButton() {
   return (
     <button
       onClick={handleLogout}
-      style={{
-        background: 'transparent',
-        border: '1px solid rgba(122,33,100,0.4)',
-        color: 'var(--text-dimmer)',
-        fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase',
-        padding: '6px 14px', borderRadius: '2px', cursor: 'pointer',
-      }}
+      className="border border-purple-900/40 text-white/50 hover:text-white/80 text-xs font-bold uppercase tracking-wide px-3 py-1.5 rounded transition-colors"
     >
       Sign out
     </button>

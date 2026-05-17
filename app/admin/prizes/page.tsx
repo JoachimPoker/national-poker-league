@@ -69,43 +69,41 @@ export default function AdminPrizesPage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: '28px', fontWeight: 500, color: 'var(--cream)', marginBottom: '8px' }}>
+      <h1 className="text-3xl font-medium text-white mb-2">
         Season Prizes
       </h1>
-      <p style={{ fontSize: '13px', color: 'var(--text-dim)', marginBottom: '32px' }}>
+      <p className="text-sm text-white/40 mb-8">
         Set the end-of-season prize structure for each league
       </p>
 
       {/* League tabs */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '32px' }}>
+      <div className="flex gap-2 mb-8">
         {LEAGUES.map(l => (
           <button
             key={l.key}
             onClick={() => setActiveLeague(l.key)}
-            style={{
-              padding: '8px 20px', fontSize: '11px', letterSpacing: '1.5px',
-              textTransform: 'uppercase', borderRadius: '2px', cursor: 'pointer',
-              border: 'none',
-              background: activeLeague === l.key ? 'var(--plum)' : 'rgba(122,33,100,0.15)',
-              color: activeLeague === l.key ? 'var(--cream)' : 'var(--text-dimmer)',
-            }}
+            className={`px-5 py-2 text-xs font-bold uppercase tracking-wider rounded-sm transition-colors ${
+              activeLeague === l.key
+                ? 'bg-purple-900 text-white'
+                : 'bg-purple-900/10 text-white/40 hover:text-white/60'
+            }`}
           >
             {l.label}
           </button>
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
 
         {/* Add prize form */}
         <div>
-          <h2 style={{ fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--text-dimmest)', marginBottom: '20px' }}>
+          <h2 className="text-xs font-black uppercase tracking-widest text-white/30 mb-6">
             Add Prize
           </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label style={{ display: 'block', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--text-dimmer)', marginBottom: '6px' }}>
+                <label className="block text-xs font-bold uppercase tracking-wide text-white/50 mb-2">
                   Position From *
                 </label>
                 <input
@@ -113,16 +111,11 @@ export default function AdminPrizesPage() {
                   value={form.position_from}
                   onChange={e => setForm({ ...form, position_from: e.target.value })}
                   placeholder="e.g. 1"
-                  style={{
-                    width: '100%', background: '#0a0814',
-                    border: '1px solid rgba(122,33,100,0.4)',
-                    color: 'var(--cream)', padding: '10px 14px',
-                    borderRadius: '4px', fontSize: '13px',
-                  }}
+                  className="w-full bg-[#0a0814] border border-purple-900/40 text-white px-3 py-2 rounded text-sm placeholder:text-white/20 focus:outline-none focus:border-[#D4AF37]/50"
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--text-dimmer)', marginBottom: '6px' }}>
+                <label className="block text-xs font-bold uppercase tracking-wide text-white/50 mb-2">
                   Position To
                 </label>
                 <input
@@ -130,35 +123,25 @@ export default function AdminPrizesPage() {
                   value={form.position_to}
                   onChange={e => setForm({ ...form, position_to: e.target.value })}
                   placeholder="Leave blank if single"
-                  style={{
-                    width: '100%', background: '#0a0814',
-                    border: '1px solid rgba(122,33,100,0.4)',
-                    color: 'var(--cream)', padding: '10px 14px',
-                    borderRadius: '4px', fontSize: '13px',
-                  }}
+                  className="w-full bg-[#0a0814] border border-purple-900/40 text-white px-3 py-2 rounded text-sm placeholder:text-white/20 focus:outline-none focus:border-[#D4AF37]/50"
                 />
               </div>
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--text-dimmer)', marginBottom: '6px' }}>
+              <label className="block text-xs font-bold uppercase tracking-wide text-white/50 mb-2">
                 Prize Description *
               </label>
               <input
                 value={form.prize_description}
                 onChange={e => setForm({ ...form, prize_description: e.target.value })}
                 placeholder="e.g. £5,000 or GUKPT Main Event Seat"
-                style={{
-                  width: '100%', background: '#0a0814',
-                  border: '1px solid rgba(122,33,100,0.4)',
-                  color: 'var(--cream)', padding: '10px 14px',
-                  borderRadius: '4px', fontSize: '13px',
-                }}
+                className="w-full bg-[#0a0814] border border-purple-900/40 text-white px-3 py-2 rounded text-sm placeholder:text-white/20 focus:outline-none focus:border-[#D4AF37]/50"
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--text-dimmer)', marginBottom: '6px' }}>
+              <label className="block text-xs font-bold uppercase tracking-wide text-white/50 mb-2">
                 Prize Amount (£) — optional
               </label>
               <input
@@ -166,38 +149,28 @@ export default function AdminPrizesPage() {
                 value={form.prize_amount}
                 onChange={e => setForm({ ...form, prize_amount: e.target.value })}
                 placeholder="e.g. 5000"
-                style={{
-                  width: '100%', background: '#0a0814',
-                  border: '1px solid rgba(122,33,100,0.4)',
-                  color: 'var(--cream)', padding: '10px 14px',
-                  borderRadius: '4px', fontSize: '13px',
-                }}
+                className="w-full bg-[#0a0814] border border-purple-900/40 text-white px-3 py-2 rounded text-sm placeholder:text-white/20 focus:outline-none focus:border-[#D4AF37]/50"
               />
             </div>
 
             <button
               onClick={handleSave}
               disabled={saving || !form.position_from || !form.prize_description}
-              style={{
-                background: form.position_from && form.prize_description && !saving ? 'var(--plum)' : 'rgba(122,33,100,0.2)',
-                border: 'none', color: 'var(--cream)',
-                padding: '12px 24px', borderRadius: '4px',
-                fontSize: '11px', letterSpacing: '1.5px', textTransform: 'uppercase',
-                cursor: form.position_from && form.prize_description && !saving ? 'pointer' : 'not-allowed',
-                fontWeight: 500,
-              }}
+              className={`px-6 py-3 rounded text-xs font-bold uppercase tracking-wider transition-all ${
+                form.position_from && form.prize_description && !saving
+                  ? 'bg-[#D4AF37] text-black hover:bg-[#D4AF37]/90'
+                  : 'bg-[#D4AF37]/20 text-white/40 cursor-not-allowed'
+              }`}
             >
               {saving ? 'Saving...' : 'Add Prize'}
             </button>
 
             {message && (
-              <div style={{
-                padding: '12px 16px', borderRadius: '4px',
-                background: message.type === 'success' ? 'rgba(0,100,0,0.1)' : 'rgba(100,0,0,0.1)',
-                border: `1px solid ${message.type === 'success' ? 'rgba(0,200,0,0.2)' : 'rgba(200,0,0,0.2)'}`,
-                fontSize: '13px',
-                color: message.type === 'success' ? '#4ade80' : '#f87171',
-              }}>
+              <div className={`px-4 py-3 rounded text-sm ${
+                message.type === 'success'
+                  ? 'bg-green-500/10 border border-green-500/20 text-green-400'
+                  : 'bg-red-500/10 border border-red-500/20 text-red-400'
+              }`}>
                 {message.text}
               </div>
             )}
@@ -206,44 +179,35 @@ export default function AdminPrizesPage() {
 
         {/* Current prizes */}
         <div>
-          <h2 style={{ fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--text-dimmest)', marginBottom: '20px' }}>
+          <h2 className="text-xs font-black uppercase tracking-widest text-white/30 mb-6">
             Current Prizes
           </h2>
           {loading ? (
-            <div style={{ fontSize: '13px', color: 'var(--text-dimmest)' }}>Loading...</div>
+            <div className="text-sm text-white/30">Loading...</div>
           ) : leaguePrizes.length === 0 ? (
-            <div style={{ fontSize: '13px', color: 'var(--text-dimmest)', fontStyle: 'italic' }}>
+            <div className="text-sm text-white/30 italic">
               No prizes set for this league yet
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div className="flex flex-col gap-2">
               {leaguePrizes
                 .sort((a, b) => a.position_from - b.position_from)
                 .map(prize => (
-                  <div key={prize.id} style={{
-                    background: '#0a0814',
-                    border: '1px solid rgba(122,33,100,0.25)',
-                    borderRadius: '4px', padding: '14px 16px',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  }}>
+                  <div key={prize.id} className="bg-[#0a0814] border border-purple-900/25 rounded p-4 flex justify-between items-center">
                     <div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-dimmer)', marginBottom: '3px' }}>
+                      <div className="text-xs text-white/50 mb-1">
                         {prize.position_from === prize.position_to
                           ? `Position ${prize.position_from}`
                           : `Positions ${prize.position_from} – ${prize.position_to}`}
                       </div>
-                      <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--gold)' }}>
+                      <div className="text-sm font-medium text-[#D4AF37]">
                         {prize.prize_description}
                       </div>
                     </div>
                     <button
                       onClick={() => handleDelete(prize.id)}
                       disabled={deleting === prize.id}
-                      style={{
-                        background: 'rgba(200,0,0,0.1)', border: '1px solid rgba(200,0,0,0.2)',
-                        color: '#f87171', padding: '4px 10px', borderRadius: '4px',
-                        fontSize: '11px', cursor: 'pointer',
-                      }}
+                      className="bg-red-500/10 border border-red-500/20 text-red-400 px-2 py-1 rounded text-xs hover:bg-red-500/20 transition-colors disabled:opacity-50"
                     >
                       {deleting === prize.id ? '...' : 'Delete'}
                     </button>

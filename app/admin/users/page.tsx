@@ -49,28 +49,28 @@ export default function AdminUsersPage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: '28px', fontWeight: 500, color: 'var(--cream)', marginBottom: '8px' }}>
+      <h1 className="text-3xl font-medium text-white mb-2">
         Admin Users
       </h1>
-      <p style={{ fontSize: '13px', color: 'var(--text-dim)', marginBottom: '40px' }}>
+      <p className="text-sm text-white/40 mb-10">
         Manage who has access to the admin panel
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
 
         {/* Add user form */}
         <div>
-          <h2 style={{ fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--text-dimmest)', marginBottom: '20px' }}>
+          <h2 className="text-xs font-black uppercase tracking-widest text-white/30 mb-6">
             Add Admin User
           </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div className="flex flex-col gap-4">
             {[
               { key: 'name', label: 'Full Name *', placeholder: 'e.g. John Smith', type: 'text' },
               { key: 'email', label: 'Email Address *', placeholder: 'e.g. john@example.com', type: 'email' },
               { key: 'password', label: 'Password *', placeholder: 'Minimum 8 characters', type: 'password' },
             ].map(field => (
               <div key={field.key}>
-                <label style={{ display: 'block', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--text-dimmer)', marginBottom: '6px' }}>
+                <label className="block text-xs font-bold uppercase tracking-wide text-white/50 mb-2">
                   {field.label}
                 </label>
                 <input
@@ -78,12 +78,7 @@ export default function AdminUsersPage() {
                   value={form[field.key as keyof typeof form]}
                   onChange={e => setForm({ ...form, [field.key]: e.target.value })}
                   placeholder={field.placeholder}
-                  style={{
-                    width: '100%', background: '#0a0814',
-                    border: '1px solid rgba(122,33,100,0.4)',
-                    color: 'var(--cream)', padding: '10px 14px',
-                    borderRadius: '4px', fontSize: '13px',
-                  }}
+                  className="w-full bg-[#0a0814] border border-purple-900/40 text-white px-3 py-2 rounded text-sm placeholder:text-white/20 focus:outline-none focus:border-emerald-500/50"
                 />
               </div>
             ))}
@@ -91,26 +86,21 @@ export default function AdminUsersPage() {
             <button
               onClick={handleSave}
               disabled={saving || !form.name || !form.email || !form.password}
-              style={{
-                background: form.name && form.email && form.password && !saving ? 'var(--plum)' : 'rgba(122,33,100,0.2)',
-                border: 'none', color: 'var(--cream)',
-                padding: '12px 24px', borderRadius: '4px',
-                fontSize: '11px', letterSpacing: '1.5px', textTransform: 'uppercase',
-                cursor: form.name && form.email && form.password && !saving ? 'pointer' : 'not-allowed',
-                fontWeight: 500,
-              }}
+              className={`px-6 py-3 rounded text-xs font-bold uppercase tracking-wider transition-all ${
+                form.name && form.email && form.password && !saving
+                  ? 'bg-emerald-500 text-black hover:bg-emerald-500/90'
+                  : 'bg-emerald-500/20 text-white/40 cursor-not-allowed'
+              }`}
             >
               {saving ? 'Creating...' : 'Create Admin User'}
             </button>
 
             {message && (
-              <div style={{
-                padding: '12px 16px', borderRadius: '4px',
-                background: message.type === 'success' ? 'rgba(0,100,0,0.1)' : 'rgba(100,0,0,0.1)',
-                border: `1px solid ${message.type === 'success' ? 'rgba(0,200,0,0.2)' : 'rgba(200,0,0,0.2)'}`,
-                fontSize: '13px',
-                color: message.type === 'success' ? '#4ade80' : '#f87171',
-              }}>
+              <div className={`px-4 py-3 rounded text-sm ${
+                message.type === 'success'
+                  ? 'bg-green-500/10 border border-green-500/20 text-green-400'
+                  : 'bg-red-500/10 border border-red-500/20 text-red-400'
+              }`}>
                 {message.text}
               </div>
             )}
@@ -119,40 +109,31 @@ export default function AdminUsersPage() {
 
         {/* Current users */}
         <div>
-          <h2 style={{ fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--text-dimmest)', marginBottom: '20px' }}>
+          <h2 className="text-xs font-black uppercase tracking-widest text-white/30 mb-6">
             Current Admin Users
           </h2>
           {loading ? (
-            <div style={{ fontSize: '13px', color: 'var(--text-dimmest)' }}>Loading...</div>
+            <div className="text-sm text-white/30">Loading...</div>
           ) : users.length === 0 ? (
-            <div style={{ fontSize: '13px', color: 'var(--text-dimmest)', fontStyle: 'italic' }}>
+            <div className="text-sm text-white/30 italic">
               No admin users yet
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div className="flex flex-col gap-2">
               {users.map(user => (
-                <div key={user.id} style={{
-                  background: '#0a0814',
-                  border: '1px solid rgba(122,33,100,0.25)',
-                  borderRadius: '4px', padding: '14px 16px',
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                }}>
+                <div key={user.id} className="bg-[#0a0814] border border-purple-900/25 rounded p-4 flex justify-between items-center">
                   <div>
-                    <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--cream)', marginBottom: '3px' }}>
+                    <div className="text-sm font-medium text-white mb-1">
                       {user.name}
                     </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-dimmest)' }}>
+                    <div className="text-xs text-white/40">
                       {user.email}
                     </div>
                   </div>
                   <button
                     onClick={() => handleDelete(user.id)}
                     disabled={deleting === user.id}
-                    style={{
-                      background: 'rgba(200,0,0,0.1)', border: '1px solid rgba(200,0,0,0.2)',
-                      color: '#f87171', padding: '4px 10px', borderRadius: '4px',
-                      fontSize: '11px', cursor: 'pointer',
-                    }}
+                    className="bg-red-500/10 border border-red-500/20 text-red-400 px-2 py-1 rounded text-xs hover:bg-red-500/20 transition-colors disabled:opacity-50"
                   >
                     {deleting === user.id ? '...' : 'Remove'}
                   </button>

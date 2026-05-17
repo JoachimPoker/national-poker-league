@@ -60,26 +60,26 @@ export default function AdminSeasonsPage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: '28px', fontWeight: 500, color: 'var(--cream)', marginBottom: '8px' }}>
+      <h1 className="text-3xl font-medium text-white mb-2">
         Seasons
       </h1>
-      <p style={{ fontSize: '13px', color: 'var(--text-dim)', marginBottom: '40px' }}>
+      <p className="text-sm text-white/40 mb-10">
         Manage seasons and upload previous season data
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* Add season */}
         <div>
-          <h2 style={{ fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--text-dimmest)', marginBottom: '20px' }}>
+          <h2 className="text-xs font-black uppercase tracking-widest text-white/30 mb-6">
             Add Season
           </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div className="flex flex-col gap-4">
             {[
               { key: 'name', label: 'Season Name *', placeholder: 'e.g. 2025 Season', type: 'text' },
               { key: 'year', label: 'Year *', placeholder: 'e.g. 2025', type: 'number' },
             ].map(field => (
               <div key={field.key}>
-                <label style={{ display: 'block', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--text-dimmer)', marginBottom: '6px' }}>
+                <label className="block text-xs font-bold uppercase tracking-wide text-white/50 mb-2">
                   {field.label}
                 </label>
                 <input
@@ -87,29 +87,19 @@ export default function AdminSeasonsPage() {
                   value={form[field.key as keyof typeof form]}
                   onChange={e => setForm({ ...form, [field.key]: e.target.value })}
                   placeholder={field.placeholder}
-                  style={{
-                    width: '100%', background: '#0a0814',
-                    border: '1px solid rgba(122,33,100,0.4)',
-                    color: 'var(--cream)', padding: '10px 14px',
-                    borderRadius: '4px', fontSize: '13px',
-                  }}
+                  className="w-full bg-[#0a0814] border border-purple-900/40 text-white px-3 py-2 rounded text-sm placeholder:text-white/20 focus:outline-none focus:border-cyan-500/50"
                 />
               </div>
             ))}
 
             <div>
-              <label style={{ display: 'block', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--text-dimmer)', marginBottom: '6px' }}>
+              <label className="block text-xs font-bold uppercase tracking-wide text-white/50 mb-2">
                 NPL Points Rule *
               </label>
               <select
                 value={form.npl_rule}
                 onChange={e => setForm({ ...form, npl_rule: e.target.value })}
-                style={{
-                  width: '100%', background: '#0a0814',
-                  border: '1px solid rgba(122,33,100,0.4)',
-                  color: 'var(--cream)', padding: '10px 14px',
-                  borderRadius: '4px', fontSize: '13px',
-                }}
+                className="w-full bg-[#0a0814] border border-purple-900/40 text-white px-3 py-2 rounded text-sm focus:outline-none focus:border-cyan-500/50"
               >
                 {NPL_RULES.map(r => (
                   <option key={r.key} value={r.key}>{r.label}</option>
@@ -120,26 +110,21 @@ export default function AdminSeasonsPage() {
             <button
               onClick={handleSave}
               disabled={saving || !form.name || !form.year}
-              style={{
-                background: form.name && form.year && !saving ? 'var(--plum)' : 'rgba(122,33,100,0.2)',
-                border: 'none', color: 'var(--cream)',
-                padding: '12px 24px', borderRadius: '4px',
-                fontSize: '11px', letterSpacing: '1.5px', textTransform: 'uppercase',
-                cursor: form.name && form.year && !saving ? 'pointer' : 'not-allowed',
-                fontWeight: 500,
-              }}
+              className={`px-6 py-3 rounded text-xs font-bold uppercase tracking-wider transition-all ${
+                form.name && form.year && !saving
+                  ? 'bg-cyan-500 text-black hover:bg-cyan-500/90'
+                  : 'bg-cyan-500/20 text-white/40 cursor-not-allowed'
+              }`}
             >
               {saving ? 'Creating...' : 'Create Season'}
             </button>
 
             {message && (
-              <div style={{
-                padding: '12px 16px', borderRadius: '4px',
-                background: message.type === 'success' ? 'rgba(0,100,0,0.1)' : 'rgba(100,0,0,0.1)',
-                border: `1px solid ${message.type === 'success' ? 'rgba(0,200,0,0.2)' : 'rgba(200,0,0,0.2)'}`,
-                fontSize: '13px',
-                color: message.type === 'success' ? '#4ade80' : '#f87171',
-              }}>
+              <div className={`px-4 py-3 rounded text-sm ${
+                message.type === 'success'
+                  ? 'bg-green-500/10 border border-green-500/20 text-green-400'
+                  : 'bg-red-500/10 border border-red-500/20 text-red-400'
+              }`}>
                 {message.text}
               </div>
             )}
@@ -148,45 +133,36 @@ export default function AdminSeasonsPage() {
 
         {/* Seasons list */}
         <div>
-          <h2 style={{ fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--text-dimmest)', marginBottom: '20px' }}>
+          <h2 className="text-xs font-black uppercase tracking-widest text-white/30 mb-6">
             All Seasons
           </h2>
           {loading ? (
-            <div style={{ fontSize: '13px', color: 'var(--text-dimmest)' }}>Loading...</div>
+            <div className="text-sm text-white/30">Loading...</div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div className="flex flex-col gap-2">
               {seasons.map(season => (
-                <div key={season.id} style={{
-                  background: '#0a0814',
-                  border: `1px solid ${season.is_active ? 'rgba(213,149,22,0.4)' : 'rgba(122,33,100,0.25)'}`,
-                  borderRadius: '4px', padding: '14px 16px',
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                }}>
+                <div key={season.id} className={`rounded p-4 flex justify-between items-center transition-colors ${
+                  season.is_active
+                    ? 'bg-[#0a0814] border border-[#D4AF37]/40'
+                    : 'bg-[#0a0814] border border-purple-900/25'
+                }`}>
                   <div>
-                    <div style={{ fontSize: '14px', fontWeight: 500, color: season.is_active ? 'var(--gold)' : 'var(--cream)', marginBottom: '3px' }}>
+                    <div className={`text-sm font-medium mb-1 ${season.is_active ? 'text-[#D4AF37]' : 'text-white'}`}>
                       {season.name}
                       {season.is_active && (
-                        <span style={{
-                          marginLeft: '8px', fontSize: '9px',
-                          background: 'var(--gold)', color: '#0a0814',
-                          padding: '2px 6px', borderRadius: '2px', fontWeight: 500,
-                        }}>
+                        <span className="ml-2 text-xs bg-[#D4AF37] text-black px-2 py-0.5 rounded font-bold">
                           ACTIVE
                         </span>
                       )}
                     </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-dimmest)' }}>
+                    <div className="text-xs text-white/40">
                       {NPL_RULES.find(r => r.key === season.npl_rule)?.label || season.npl_rule}
                     </div>
                   </div>
                   {!season.is_active && (
                     <button
                       onClick={() => setActive(season.id)}
-                      style={{
-                        background: 'rgba(213,149,22,0.1)', border: '1px solid rgba(213,149,22,0.3)',
-                        color: 'var(--gold)', padding: '6px 12px', borderRadius: '4px',
-                        fontSize: '11px', cursor: 'pointer',
-                      }}
+                      className="bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] px-3 py-1 rounded text-xs font-medium hover:bg-[#D4AF37]/20 transition-colors"
                     >
                       Set Active
                     </button>
