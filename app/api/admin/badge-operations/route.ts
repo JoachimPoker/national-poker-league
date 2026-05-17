@@ -242,7 +242,7 @@ async function completeJob(jobId: string, result: any) {
 async function failJob(jobId: string, error: any) {
   const errorMessage = error instanceof Error ? error.message : String(error)
 
-  const { dbError } = await supabaseAdmin
+  const { error: updateError } = await supabaseAdmin
     .from('jobs')
     .update({
       status: 'failed',
@@ -251,5 +251,5 @@ async function failJob(jobId: string, error: any) {
     })
     .eq('id', jobId)
 
-  if (dbError) console.error('Failed to update job error:', dbError)
+  if (updateError) console.error('Failed to update job error:', updateError)
 }
