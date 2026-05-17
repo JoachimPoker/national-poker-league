@@ -24,7 +24,6 @@ async function fetchAllResults(seasonId: number, selectQuery: string) {
 }
 
 export async function getNPLLeaderboard(seasonId: number): Promise<LeaderboardEntry[]> {
-  // NPL = ALL events count, top 20 results used + 2pts per extra result
   const allResults = await fetchAllResults(
     seasonId,
     'player_id, points, prize_amount, finish_position, players(full_name, gdpr, home_casino)'
@@ -80,7 +79,6 @@ export async function getNPLLeaderboard(seasonId: number): Promise<LeaderboardEn
 }
 
 export async function getHighRollerLeaderboard(seasonId: number): Promise<LeaderboardEntry[]> {
-  // High Roller = ONLY High Roller events, ALL results count, no cap
   const allResults = await fetchAllResults(
     seasonId,
     'player_id, points, prize_amount, finish_position, players(full_name, gdpr, home_casino), events(is_high_roller)'
@@ -125,7 +123,6 @@ export async function getHighRollerLeaderboard(seasonId: number): Promise<Leader
 }
 
 export async function getLowRollerLeaderboard(seasonId: number): Promise<LeaderboardEntry[]> {
-  // Low Roller = ONLY events with buy-in <= 300, ALL results count, no cap
   const allResults = await fetchAllResults(
     seasonId,
     'player_id, points, prize_amount, finish_position, players(full_name, gdpr, home_casino), events(is_low_roller, buy_in)'
@@ -167,4 +164,21 @@ export async function getLowRollerLeaderboard(seasonId: number): Promise<Leaderb
       total_points: Math.round(e.total_points * 100) / 100,
     }))
     .sort((a, b) => b.total_points - a.total_points)
+}
+
+/**
+ * GDPR scrub: replaces non-consented player data with anonymous placeholders
+ * before data is sent to the client. Call this on any leaderboard/player list
+ * that is passed into a client component.
+ */
+export function scrubAnonymous(entries: LeaderboardEntry[]): LeaderboardEntry[] {
+  return entries.map(entry =>
+    entry.gdpr
+      ? entry
+      : {
+          ...entry,
+          full_name: 'Anonymous Player',
+          home_casino: '',
+        }
+  )
 }

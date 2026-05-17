@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getNPLLeaderboard, getHighRollerLeaderboard, getLowRollerLeaderboard } from '@/lib/calculations'
+import { requireAdmin } from '@/lib/auth'
 
 export async function POST() {
+  const authError = await requireAdmin()
+  if (authError) return authError
+
   try {
     const { data: seasons } = await supabaseAdmin
       .from('seasons')

@@ -47,42 +47,49 @@ export default function AdminNewsPage() {
   }
 
   return (
-    <div>
-      <h1 style={{ fontSize: '28px', fontWeight: 500, color: 'var(--cream)', marginBottom: '8px' }}>
-        News & Announcements
-      </h1>
-      <p style={{ fontSize: '13px', color: 'var(--text-dim)', marginBottom: '40px' }}>
-        Write posts or share social media links to keep players updated
-      </p>
+    <div className="animate-in fade-in duration-500">
+      {/* Page Header */}
+      <div className="mb-10 relative">
+        <div className="flex items-center gap-4 mb-3">
+          <span className="h-[2px] w-8 bg-gradient-to-r from-transparent to-purple-400"></span>
+          <span className="text-purple-400 text-[10px] tracking-[5px] uppercase font-black">
+            Admin • News Desk
+          </span>
+        </div>
+        <h1 className="text-3xl md:text-4xl font-black text-white uppercase tracking-wider mb-2">
+          News <span className="text-[#D4AF37]">& Announcements</span>
+        </h1>
+        <p className="text-xs text-white/50 font-mono tracking-widest uppercase">
+          Write posts or share social links to keep players updated
+        </p>
+      </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative">
 
-        {/* New post form */}
-        <div>
-          <h2 style={{ fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--text-dimmest)', marginBottom: '20px' }}>
+        {/* New Post Form */}
+        <div className="bg-black/40 border border-white/10 rounded-2xl p-8 backdrop-blur-md relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-[40px] pointer-events-none"></div>
+
+          <h2 className="text-[11px] font-black text-white/60 tracking-[4px] uppercase mb-6 border-b border-white/10 pb-4 relative z-10">
             New Post
           </h2>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div className="flex flex-col gap-5 relative z-10">
+
             <div>
-              <label style={{ display: 'block', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--text-dimmer)', marginBottom: '8px' }}>
+              <label className="block text-[10px] text-white/40 tracking-[2px] uppercase font-black mb-2">
                 Title *
               </label>
               <input
                 value={form.title}
                 onChange={e => setForm({ ...form, title: e.target.value })}
                 placeholder="e.g. Week 12 results uploaded"
-                style={{
-                  width: '100%', background: '#0a0814',
-                  border: '1px solid rgba(122,33,100,0.4)',
-                  color: 'var(--cream)', padding: '10px 14px',
-                  borderRadius: '4px', fontSize: '13px',
-                }}
+                className="w-full bg-black/60 border border-white/10 text-white px-4 py-3 rounded-lg text-sm focus:outline-none focus:border-cyan-400/50 focus:shadow-[0_0_15px_rgba(0,243,255,0.15)] transition-all"
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--text-dimmer)', marginBottom: '8px' }}>
+              <label className="block text-[10px] text-white/40 tracking-[2px] uppercase font-black mb-2">
                 Content
               </label>
               <textarea
@@ -90,118 +97,117 @@ export default function AdminNewsPage() {
                 onChange={e => setForm({ ...form, content: e.target.value })}
                 placeholder="Write your announcement here..."
                 rows={5}
-                style={{
-                  width: '100%', background: '#0a0814',
-                  border: '1px solid rgba(122,33,100,0.4)',
-                  color: 'var(--cream)', padding: '10px 14px',
-                  borderRadius: '4px', fontSize: '13px',
-                  resize: 'vertical', fontFamily: 'inherit',
-                }}
+                className="w-full bg-black/60 border border-white/10 text-white px-4 py-3 rounded-lg text-sm focus:outline-none focus:border-cyan-400/50 focus:shadow-[0_0_15px_rgba(0,243,255,0.15)] transition-all resize-y font-sans"
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--text-dimmer)', marginBottom: '8px' }}>
-                Social Media Link (optional)
+              <label className="block text-[10px] text-white/40 tracking-[2px] uppercase font-black mb-2">
+                Social Media Link <span className="text-white/30 normal-case tracking-normal">(optional)</span>
               </label>
               <input
                 value={form.social_link}
                 onChange={e => setForm({ ...form, social_link: e.target.value })}
                 placeholder="https://facebook.com/..."
-                style={{
-                  width: '100%', background: '#0a0814',
-                  border: '1px solid rgba(122,33,100,0.4)',
-                  color: 'var(--cream)', padding: '10px 14px',
-                  borderRadius: '4px', fontSize: '13px',
-                }}
+                className="w-full bg-black/60 border border-white/10 text-white px-4 py-3 rounded-lg text-sm focus:outline-none focus:border-cyan-400/50 focus:shadow-[0_0_15px_rgba(0,243,255,0.15)] transition-all"
               />
             </div>
 
             <button
               onClick={handleSave}
               disabled={saving || !form.title.trim()}
-              style={{
-                background: form.title.trim() && !saving ? 'var(--plum)' : 'rgba(122,33,100,0.2)',
-                border: 'none', color: 'var(--cream)',
-                padding: '12px 24px', borderRadius: '4px',
-                fontSize: '11px', letterSpacing: '1.5px', textTransform: 'uppercase',
-                cursor: form.title.trim() && !saving ? 'pointer' : 'not-allowed',
-                fontWeight: 500,
-              }}
+              className={`py-3 px-6 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all shadow-lg ${
+                form.title.trim() && !saving
+                  ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white hover:shadow-[0_0_20px_rgba(168,85,247,0.3)]'
+                  : 'bg-white/5 text-white/30 cursor-not-allowed'
+              }`}
             >
               {saving ? 'Publishing...' : 'Publish Post'}
             </button>
 
             {message && (
-              <div style={{
-                padding: '12px 16px', borderRadius: '4px',
-                background: message.type === 'success' ? 'rgba(0,100,0,0.1)' : 'rgba(100,0,0,0.1)',
-                border: `1px solid ${message.type === 'success' ? 'rgba(0,200,0,0.2)' : 'rgba(200,0,0,0.2)'}`,
-                fontSize: '13px',
-                color: message.type === 'success' ? '#4ade80' : '#f87171',
-              }}>
+              <div className={`rounded-lg p-4 text-sm font-medium ${
+                message.type === 'success'
+                  ? 'bg-green-500/10 border border-green-500/30 text-green-400'
+                  : 'bg-red-500/10 border border-red-500/30 text-red-400'
+              }`}>
                 {message.text}
               </div>
             )}
+
           </div>
         </div>
 
-        {/* Existing posts */}
+        {/* Published Posts */}
         <div>
-          <h2 style={{ fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--text-dimmest)', marginBottom: '20px' }}>
+          <h2 className="text-[11px] font-black text-white/60 tracking-[4px] uppercase mb-6 border-b border-white/10 pb-4 flex items-center gap-3">
             Published Posts
+            {posts.length > 0 && (
+              <span className="px-2 py-0.5 rounded bg-purple-400/20 text-purple-400 text-xs normal-case tracking-normal">
+                {posts.length}
+              </span>
+            )}
           </h2>
 
           {loading ? (
-            <div style={{ fontSize: '13px', color: 'var(--text-dimmest)' }}>Loading...</div>
+            <div className="text-sm text-white/40 font-mono tracking-widest uppercase">Loading...</div>
           ) : posts.length === 0 ? (
-            <div style={{ fontSize: '13px', color: 'var(--text-dimmest)', fontStyle: 'italic' }}>
-              No posts yet
+            <div className="bg-black/40 border border-dashed border-white/10 rounded-2xl p-12 text-center">
+              <div className="text-4xl mb-4 opacity-20">📰</div>
+              <div className="text-white/40 font-bold uppercase tracking-widest text-sm">
+                No posts yet
+              </div>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="flex flex-col gap-4">
               {posts.map(post => (
-                <div key={post.id} style={{
-                  background: '#0a0814',
-                  border: '1px solid rgba(122,33,100,0.25)',
-                  borderRadius: '4px', padding: '16px',
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                    <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--cream)', flex: 1, paddingRight: '12px' }}>
+                <div
+                  key={post.id}
+                  className="group bg-black/40 border border-white/10 rounded-2xl p-5 backdrop-blur-md hover:border-purple-500/30 hover:shadow-[0_10px_30px_rgba(168,85,247,0.1)] transition-all relative overflow-hidden"
+                >
+                  <div className="flex justify-between items-start gap-4 mb-2 relative z-10">
+                    <h3 className="text-sm font-black text-white leading-snug flex-1">
                       {post.title}
-                    </div>
+                    </h3>
                     <button
                       onClick={() => handleDelete(post.id)}
                       disabled={deleting === post.id}
-                      style={{
-                        background: 'rgba(200,0,0,0.1)', border: '1px solid rgba(200,0,0,0.2)',
-                        color: '#f87171', padding: '4px 10px', borderRadius: '4px',
-                        fontSize: '11px', cursor: 'pointer', flexShrink: 0,
-                      }}
+                      className="flex-shrink-0 px-3 py-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/50 rounded text-red-400 text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50"
                     >
                       {deleting === post.id ? '...' : 'Delete'}
                     </button>
                   </div>
+
                   {post.content && (
-                    <div style={{ fontSize: '12px', color: 'var(--text-dim)', marginBottom: '6px', lineHeight: 1.5 }}>
+                    <p className="text-xs text-white/60 leading-relaxed mb-3 relative z-10">
                       {post.content}
-                    </div>
+                    </p>
                   )}
+
                   {post.social_link && (
-                    <a href={post.social_link} target="_blank" rel="noopener noreferrer" style={{
-                      fontSize: '11px', color: 'var(--gold)',
-                    }}>
-                      {post.social_link}
+                    
+                      <a href={post.social_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block text-[11px] text-cyan-400 hover:text-cyan-300 font-mono truncate max-w-full relative z-10 transition-colors"
+                    >
+                      {post.social_link} ↗
                     </a>
                   )}
-                  <div style={{ fontSize: '10px', color: 'var(--text-dimmest)', marginTop: '8px' }}>
-                    {new Date(post.published_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+
+                  <div className="text-[9px] text-white/30 font-mono tracking-widest uppercase mt-3 pt-3 border-t border-white/5 relative z-10">
+                    {new Date(post.published_at).toLocaleDateString('en-GB', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
                   </div>
                 </div>
               ))}
             </div>
           )}
         </div>
+
       </div>
     </div>
   )

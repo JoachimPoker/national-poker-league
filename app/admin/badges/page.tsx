@@ -172,9 +172,9 @@ export default function BadgeManagementPage() {
     await handleArchive(badge)
   }
 
-  return (
-    <div className="min-h-screen bg-[#040408] text-white p-6 md:p-12">
-      <div className="max-w-[1400px] mx-auto">
+ return (
+    <div>
+      <div className="max-w-[1400px] mx-auto p-6 md:p-12">
         
         {/* Header */}
         <div className="mb-8">

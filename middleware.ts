@@ -1,20 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth'
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Only protect /admin routes (but not /admin/login itself)
   if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {
-    const session = request.cookies.get('npl_admin_session')
+    const token = request.cookies.get(SESSION_COOKIE_NAME)?.value
 
-    if (!session) {
+    if (!token) {
       return NextResponse.redirect(new URL('/admin/login', request.url))
     }
 
-    try {
-      JSON.parse(session.value)
-    } catch {
-      return NextResponse.redirect(new URL('/admin/login', request.url))
+    const session = await verifySessionToken(token)
+    if (!session) {
+      // Cookie is tampered, expired, or invalid — clear it and redirect
+      const response = NextResponse.redirect(new URL('/admin/login', request.url))
+      response.cookies.delete(SESSION_COOKIE_NAME)
+      return response
     }
   }
 
