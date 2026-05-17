@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    // Create job record in Supabase (instead of in-memory Map)
+    // Create job record in Supabase
     const { data: job, error: jobError } = await supabaseAdmin
       .from('jobs')
       .insert({
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Job ID required' }, { status: 400 })
     }
 
-    // Fetch job from Supabase (no in-memory Map lookup)
+    // Fetch job from Supabase
     const { data: job, error } = await supabaseAdmin
       .from('jobs')
       .select('*')
@@ -141,18 +141,35 @@ async function runUploadJob(jobId: string, file: File, seasonId: string) {
       if (!playersMap.has(playerId)) {
         playersMap.set(playerId, {
           id: playerId,
-          full_name: row['Player Name'] || 'Unknown',
-          updated_at: new Date().toISOString(),
+          forename: row['Forename'] || '',
+          surname: row['Surname'] || '',
+          full_name: row['Full Name'] || '',
+          date_of_birth: parseDate(row['Date Of Birth']),
+          card_number: parseInt(row['Card Number']) || null,
+          membership_number: parseInt(row['Membership Number']) || null,
+          gdpr: row['GDPR'] === '1' || row['GDPR'] === 1 || row['GDPR'] === true,
+          home_casino: row['Casino'] || '',
         })
       }
 
       // Collect events
       if (!eventsMap.has(eventId)) {
+        const tournamentName = row['Tournament Name'] || ''
+        const buyInRaw = row['Buy In']
+        const buyIn = isNaN(parseFloat(buyInRaw)) ? 0 : parseFloat(buyInRaw)
+        const isHighRoller = tournamentName.toLowerCase().includes('high roller')
+        const isLowRoller = !isHighRoller && buyIn <= 300
+
         eventsMap.set(eventId, {
           id: eventId,
-          name: row['Tournament Name'] || 'Unknown',
           season_id: parseInt(seasonId),
-          updated_at: new Date().toISOString(),
+          casino: row['Casino'] || '',
+          tournament_name: tournamentName,
+          start_date: parseDate(row['Start Date']),
+          buy_in: buyIn,
+          is_high_roller: isHighRoller,
+          is_low_roller: isLowRoller,
+          web_sync_site_id: parseInt(row['Web Sync Site Id']) || null,
         })
       }
 
@@ -175,7 +192,6 @@ async function runUploadJob(jobId: string, file: File, seasonId: string) {
         points,
         prize_position: prizePosition,
         prize_amount: isNaN(prizeAmount) ? 0 : prizeAmount,
-        updated_at: new Date().toISOString(),
       })
     }
 
@@ -248,7 +264,7 @@ async function runUploadJob(jobId: string, file: File, seasonId: string) {
       })
     }
 
-    // Stage 6: Update stats and awards badges
+    // Stage 6: Update stats and award badges
     await updateProgress(jobId, 65, 100, {
       stage: 'badges',
       message: 'Updating player stats and awarding badges...',
@@ -338,17 +354,34 @@ async function runUploadSync(file: File, seasonId: string, jobId: string) {
       if (!playersMap.has(playerId)) {
         playersMap.set(playerId, {
           id: playerId,
-          full_name: row['Player Name'] || 'Unknown',
-          updated_at: new Date().toISOString(),
+          forename: row['Forename'] || '',
+          surname: row['Surname'] || '',
+          full_name: row['Full Name'] || '',
+          date_of_birth: parseDate(row['Date Of Birth']),
+          card_number: parseInt(row['Card Number']) || null,
+          membership_number: parseInt(row['Membership Number']) || null,
+          gdpr: row['GDPR'] === '1' || row['GDPR'] === 1 || row['GDPR'] === true,
+          home_casino: row['Casino'] || '',
         })
       }
 
       if (!eventsMap.has(eventId)) {
+        const tournamentName = row['Tournament Name'] || ''
+        const buyInRaw = row['Buy In']
+        const buyIn = isNaN(parseFloat(buyInRaw)) ? 0 : parseFloat(buyInRaw)
+        const isHighRoller = tournamentName.toLowerCase().includes('high roller')
+        const isLowRoller = !isHighRoller && buyIn <= 300
+
         eventsMap.set(eventId, {
           id: eventId,
-          name: row['Tournament Name'] || 'Unknown',
           season_id: parseInt(seasonId),
-          updated_at: new Date().toISOString(),
+          casino: row['Casino'] || '',
+          tournament_name: tournamentName,
+          start_date: parseDate(row['Start Date']),
+          buy_in: buyIn,
+          is_high_roller: isHighRoller,
+          is_low_roller: isLowRoller,
+          web_sync_site_id: parseInt(row['Web Sync Site Id']) || null,
         })
       }
 
@@ -370,7 +403,6 @@ async function runUploadSync(file: File, seasonId: string, jobId: string) {
         points,
         prize_position: prizePosition,
         prize_amount: isNaN(prizeAmount) ? 0 : prizeAmount,
-        updated_at: new Date().toISOString(),
       })
     }
 
@@ -445,6 +477,25 @@ async function runUploadSync(file: File, seasonId: string, jobId: string) {
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
+
+function parseDate(dateValue: any): string {
+  if (!dateValue) return new Date().toISOString().split('T')[0]
+  
+  // If it's already a Date object (from Excel)
+  if (dateValue instanceof Date) {
+    return dateValue.toISOString().split('T')[0]
+  }
+  
+  // If it's a string, try to parse it
+  if (typeof dateValue === 'string') {
+    const date = new Date(dateValue)
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0]
+    }
+  }
+  
+  return new Date().toISOString().split('T')[0]
+}
 
 async function updateJobStatus(jobId: string, status: string, metadata?: any) {
   const updates: any = { status }
