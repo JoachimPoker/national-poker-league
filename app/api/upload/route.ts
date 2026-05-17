@@ -1,53 +1,56 @@
+// app/api/upload/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import * as XLSX from 'xlsx'
 import { updatePlayerLifetimeStats, autoAwardBadges } from '@/lib/badge-calculator'
-import { requireAdmin } from '@/lib/auth'
-
-// In-memory progress store
-const uploadProgressStore = new Map<string, {
-  stage: string
-  percent: number
-  message: string
-  completed: boolean
-  error?: string
-  result?: any
-}>()
 
 export async function POST(request: NextRequest) {
-  const authError = await requireAdmin()
-  if (authError) return authError
-
-  const jobId = `upload-${Date.now()}`
-
   try {
     const formData = await request.formData()
     const file = formData.get('file') as File
     const seasonId = formData.get('seasonId') as string
+    const trackProgress = formData.get('trackProgress') === 'true'
 
-    if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
-    if (!seasonId) return NextResponse.json({ error: 'No season ID provided' }, { status: 400 })
+    if (!file) {
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+    }
 
-    // Kick off the upload in the background and return immediately
-    uploadProgressStore.set(jobId, {
-      stage: 'reading',
-      percent: 0,
-      message: 'Reading Excel file...',
-      completed: false
-    })
-
-    runUploadJob(jobId, file, seasonId).catch(err => {
-      uploadProgressStore.set(jobId, {
-        stage: 'error',
-        percent: 0,
-        message: err.message,
-        completed: true,
-        error: err.message
+    // Create job record in Supabase (instead of in-memory Map)
+    const { data: job, error: jobError } = await supabaseAdmin
+      .from('jobs')
+      .insert({
+        type: 'file_upload',
+        status: 'pending',
+        created_by: 'admin',
+        metadata: {
+          filename: file.name,
+          size: file.size,
+          seasonId,
+        },
+        progress_percent: 0,
+        current_item: 0,
       })
-    })
+      .select()
+      .single()
 
-    return NextResponse.json({ success: true, jobId })
+    if (jobError) {
+      console.error('Job creation error:', jobError)
+      return NextResponse.json({ error: 'Failed to create job' }, { status: 500 })
+    }
 
+    // If progress tracking requested, return immediately
+    if (trackProgress) {
+      // Start background upload job
+      runUploadJob(job.id, file, seasonId).catch((err) => {
+        failJob(job.id, err)
+      })
+
+      return NextResponse.json({ success: true, jobId: job.id, trackProgress: true })
+    }
+
+    // Otherwise run synchronously (backwards compatible)
+    const result = await runUploadSync(file, seasonId, job.id)
+    return NextResponse.json(result)
   } catch (error: any) {
     console.error('Upload error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
@@ -55,301 +58,462 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const authError = await requireAdmin()
-  if (authError) return authError
+  try {
+    const jobId = request.nextUrl.searchParams.get('jobId')
 
-  const jobId = request.nextUrl.searchParams.get('jobId')
+    if (!jobId) {
+      return NextResponse.json({ error: 'Job ID required' }, { status: 400 })
+    }
 
-  if (!jobId) {
-    return NextResponse.json({ error: 'Job ID required' }, { status: 400 })
+    // Fetch job from Supabase (no in-memory Map lookup)
+    const { data: job, error } = await supabaseAdmin
+      .from('jobs')
+      .select('*')
+      .eq('id', jobId)
+      .single()
+
+    if (error || !job) {
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 })
+    }
+
+    // Return job data in format compatible with existing client code
+    return NextResponse.json({
+      stage: job.metadata?.stage || 'processing',
+      percent: job.progress_percent,
+      message: job.metadata?.message || 'Processing...',
+      completed: ['completed', 'failed', 'cancelled'].includes(job.status),
+      error: job.result?.error,
+      result: job.result,
+    })
+  } catch (error: any) {
+    console.error('Job fetch error:', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
-
-  const progress = uploadProgressStore.get(jobId)
-
-  if (!progress) {
-    return NextResponse.json({ error: 'Job not found' }, { status: 404 })
-  }
-
-  return NextResponse.json(progress)
 }
+
+// ============================================================================
+// BACKGROUND JOB - ASYNC UPLOAD WITH PROGRESS
+// ============================================================================
 
 async function runUploadJob(jobId: string, file: File, seasonId: string) {
-  // Stage 1: Read file (0-10%)
-  uploadProgressStore.set(jobId, {
-    stage: 'reading',
-    percent: 5,
-    message: 'Reading Excel file...',
-    completed: false
-  })
+  try {
+    await updateJobStatus(jobId, 'in_progress', {
+      stage: 'reading',
+      message: 'Reading Excel file...',
+    })
 
-  const buffer = await file.arrayBuffer()
-  const workbook = XLSX.read(buffer, { type: 'array', cellDates: true })
+    // Read file
+    const buffer = await file.arrayBuffer()
+    const workbook = XLSX.read(buffer, { type: 'array', cellDates: true })
 
-  const sheetName = Object.keys(workbook.Sheets).find(name =>
-    name.toLowerCase().replace(/\s/g, '') === 'totalpoints'
-  )
+    const sheetName = Object.keys(workbook.Sheets).find((name) =>
+      name.toLowerCase().replace(/\s/g, '') === 'totalpoints'
+    )
 
-  if (!sheetName) {
-    throw new Error('TotalPoints sheet not found')
-  }
-
-  const sheet = workbook.Sheets[sheetName]
-  const rows: any[] = XLSX.utils.sheet_to_json(sheet, { raw: false, dateNF: 'yyyy-mm-dd' })
-
-  // Stage 2: Parse data (10-20%)
-  uploadProgressStore.set(jobId, {
-    stage: 'parsing',
-    percent: 15,
-    message: `Parsing ${rows.length} rows...`,
-    completed: false
-  })
-
-  let playersUpserted = 0
-  let eventsUpserted = 0
-  let resultsUpserted = 0
-  let skipped = 0
-
-  const playersMap = new Map<number, any>()
-  const eventsMap = new Map<number, any>()
-
-  for (const row of rows) {
-    const playerId = parseInt(row['Player Id'])
-    const eventId = parseInt(row['Tournament Id'])
-
-    if (isNaN(playerId) || isNaN(eventId)) { skipped++; continue }
-
-    if (!playersMap.has(playerId)) {
-      playersMap.set(playerId, {
-        id: playerId,
-        forename: row['Forename'] || '',
-        surname: row['Surname'] || '',
-        full_name: row['Full Name'] || '',
-        date_of_birth: parseDOB(row['Date Of Birth']),
-        card_number: parseInt(row['Card Number']) || null,
-        membership_number: parseInt(row['Membership Number']) || null,
-        gdpr: row['GDPR'] === '1' || row['GDPR'] === 1,
-        home_casino: row['Casino'] || '',
-      })
+    if (!sheetName) {
+      throw new Error('TotalPoints sheet not found')
     }
 
-    if (!eventsMap.has(eventId)) {
-      const tournamentName = row['Tournament Name'] || ''
-      const buyInRaw = row['Buy In']
-      const buyIn = isNaN(parseFloat(buyInRaw)) ? 0 : parseFloat(buyInRaw)
-      const isHighRoller = tournamentName.toLowerCase().includes('high roller')
-      const isLowRoller = !isHighRoller && buyIn <= 300
+    const sheet = workbook.Sheets[sheetName]
+    const rows: any[] = XLSX.utils.sheet_to_json(sheet, { raw: false, dateNF: 'yyyy-mm-dd' })
 
-      eventsMap.set(eventId, {
-        id: eventId,
+    // Stage 2: Parse data
+    await updateProgress(jobId, 10, 100, {
+      stage: 'parsing',
+      message: 'Parsing data...',
+    })
+
+    const playersMap = new Map()
+    const eventsMap = new Map()
+    const resultRows = []
+    let skipped = 0
+
+    for (const row of rows) {
+      const playerId = parseInt(row['Player Id'])
+      const eventId = parseInt(row['Tournament Id'])
+
+      if (isNaN(playerId) || isNaN(eventId)) {
+        skipped++
+        continue
+      }
+
+      // Collect players
+      if (!playersMap.has(playerId)) {
+        playersMap.set(playerId, {
+          id: playerId,
+          full_name: row['Player Name'] || 'Unknown',
+          updated_at: new Date().toISOString(),
+        })
+      }
+
+      // Collect events
+      if (!eventsMap.has(eventId)) {
+        eventsMap.set(eventId, {
+          id: eventId,
+          name: row['Tournament Name'] || 'Unknown',
+          season_id: parseInt(seasonId),
+          updated_at: new Date().toISOString(),
+        })
+      }
+
+      // Parse result
+      const points = parseFloat(row['Points'])
+      if (isNaN(points)) {
+        skipped++
+        continue
+      }
+
+      const finishPosition = parseInt(row['Position'])
+      const prizePosition = parseInt(row['Position Of Prize']) || 0
+      const prizeAmount = parseFloat(row['Prize Amount']) || 0
+
+      resultRows.push({
+        player_id: playerId,
+        event_id: eventId,
         season_id: parseInt(seasonId),
-        casino: row['Casino'] || '',
-        tournament_name: tournamentName,
-        start_date: parseDate(row['Start Date']),
-        buy_in: buyIn,
-        is_high_roller: isHighRoller,
-        is_low_roller: isLowRoller,
-        web_sync_site_id: parseInt(row['Web Sync Site Id']) || null,
+        finish_position: isNaN(finishPosition) ? 0 : finishPosition,
+        points,
+        prize_position: prizePosition,
+        prize_amount: isNaN(prizeAmount) ? 0 : prizeAmount,
+        updated_at: new Date().toISOString(),
       })
     }
-  }
 
-  // Stage 3: Upload players (20-40%)
-  uploadProgressStore.set(jobId, {
-    stage: 'players',
-    percent: 25,
-    message: `Uploading ${playersMap.size} players...`,
-    completed: false
-  })
-
-  const playerChunks = chunkArray(Array.from(playersMap.values()), 100)
-  for (let i = 0; i < playerChunks.length; i++) {
-    const chunk = playerChunks[i]
-    const { error } = await supabaseAdmin
-      .from('players')
-      .upsert(chunk, { onConflict: 'id' })
-    if (error) throw new Error(`Players upsert error: ${error.message}`)
-    playersUpserted += chunk.length
-
-    uploadProgressStore.set(jobId, {
+    // Stage 3: Upload players
+    await updateProgress(jobId, 15, 100, {
       stage: 'players',
-      percent: 25 + Math.floor((i / playerChunks.length) * 15),
-      message: `Uploaded ${playersUpserted} of ${playersMap.size} players...`,
-      completed: false
+      message: `Uploading ${playersMap.size} players...`,
     })
-  }
 
-  // Stage 4: Upload events (40-50%)
-  uploadProgressStore.set(jobId, {
-    stage: 'events',
-    percent: 40,
-    message: `Uploading ${eventsMap.size} events...`,
-    completed: false
-  })
+    const playerChunks = chunkArray(Array.from(playersMap.values()), 100)
+    let playersUpserted = 0
 
-  const eventChunks = chunkArray(Array.from(eventsMap.values()), 100)
-  for (let i = 0; i < eventChunks.length; i++) {
-    const chunk = eventChunks[i]
-    const { error } = await supabaseAdmin
-      .from('events')
-      .upsert(chunk, { onConflict: 'id' })
-    if (error) throw new Error(`Events upsert error: ${error.message}`)
-    eventsUpserted += chunk.length
+    for (let i = 0; i < playerChunks.length; i++) {
+      const { error } = await supabaseAdmin
+        .from('players')
+        .upsert(playerChunks[i], { onConflict: 'id' })
 
-    uploadProgressStore.set(jobId, {
+      if (error) throw new Error(`Players upsert error: ${error.message}`)
+      playersUpserted += playerChunks[i].length
+
+      await updateProgress(jobId, 15 + (i / playerChunks.length) * 10, 100, {
+        stage: 'players',
+        message: `Uploaded ${playersUpserted} of ${playersMap.size} players...`,
+      })
+    }
+
+    // Stage 4: Upload events
+    await updateProgress(jobId, 30, 100, {
       stage: 'events',
-      percent: 40 + Math.floor((i / eventChunks.length) * 10),
-      message: `Uploaded ${eventsUpserted} of ${eventsMap.size} events...`,
-      completed: false
+      message: `Uploading ${eventsMap.size} events...`,
     })
-  }
 
-  // Stage 5: Upload results (50-70%)
-  uploadProgressStore.set(jobId, {
-    stage: 'results',
-    percent: 50,
-    message: 'Processing results...',
-    completed: false
-  })
+    const eventChunks = chunkArray(Array.from(eventsMap.values()), 100)
+    let eventsUpserted = 0
 
-  const resultRows = []
-  for (const row of rows) {
-    const playerId = parseInt(row['Player Id'])
-    const eventId = parseInt(row['Tournament Id'])
-    if (isNaN(playerId) || isNaN(eventId)) continue
+    for (let i = 0; i < eventChunks.length; i++) {
+      const { error } = await supabaseAdmin
+        .from('events')
+        .upsert(eventChunks[i], { onConflict: 'id' })
 
-    const points = parseFloat(row['Points'])
-    const finishPosition = parseInt(row['Position'])
-    const prizePosition = parseInt(row['Position Of Prize']) || 0
-    const prizeAmount = parseFloat(row['Prize Amount']) || 0
+      if (error) throw new Error(`Events upsert error: ${error.message}`)
+      eventsUpserted += eventChunks[i].length
 
-    if (isNaN(points)) continue
+      await updateProgress(jobId, 30 + (i / eventChunks.length) * 10, 100, {
+        stage: 'events',
+        message: `Uploaded ${eventsUpserted} of ${eventsMap.size} events...`,
+      })
+    }
 
-    resultRows.push({
-      player_id: playerId,
-      event_id: eventId,
-      season_id: parseInt(seasonId),
-      finish_position: isNaN(finishPosition) ? 0 : finishPosition,
-      points: points,
-      prize_position: prizePosition,
-      prize_amount: isNaN(prizeAmount) ? 0 : prizeAmount,
-      updated_at: new Date().toISOString(),
-    })
-  }
-
-  const resultMap = new Map()
-  for (const result of resultRows) {
-    const key = `${result.player_id}-${result.event_id}`
-    resultMap.set(key, result)
-  }
-  const deduplicatedResults = Array.from(resultMap.values())
-
-  const resultChunks = chunkArray(deduplicatedResults, 100)
-  for (let i = 0; i < resultChunks.length; i++) {
-    const chunk = resultChunks[i]
-    const { error } = await supabaseAdmin
-      .from('results')
-      .upsert(chunk, { onConflict: 'player_id,event_id' })
-    if (error) throw new Error(`Results upsert error: ${error.message}`)
-    resultsUpserted += chunk.length
-
-    uploadProgressStore.set(jobId, {
+    // Stage 5: Upload results
+    await updateProgress(jobId, 45, 100, {
       stage: 'results',
-      percent: 50 + Math.floor((i / resultChunks.length) * 20),
-      message: `Uploaded ${resultsUpserted} of ${deduplicatedResults.length} results...`,
-      completed: false
+      message: 'Uploading results...',
     })
-  }
 
-  // Stage 6: Update badges (70-100%)
-  uploadProgressStore.set(jobId, {
-    stage: 'badges',
-    percent: 70,
-    message: 'Updating player stats and badges...',
-    completed: false
-  })
+    const resultChunks = chunkArray(resultRows, 100)
+    let resultsUpserted = 0
 
-  const badgeUpdateSummary = {
-    statsUpdated: 0,
-    badgesAwarded: 0,
-    playerIds: Array.from(playersMap.keys())
-  }
+    for (let i = 0; i < resultChunks.length; i++) {
+      const { error } = await supabaseAdmin
+        .from('results')
+        .upsert(resultChunks[i], { onConflict: 'player_id,event_id' })
 
-  const playerIds = Array.from(playersMap.keys())
-  for (let i = 0; i < playerIds.length; i++) {
-    const playerId = playerIds[i]
+      if (error) throw new Error(`Results upsert error: ${error.message}`)
+      resultsUpserted += resultChunks[i].length
 
-    await updatePlayerLifetimeStats(playerId)
-    badgeUpdateSummary.statsUpdated++
+      await updateProgress(jobId, 45 + (i / resultChunks.length) * 15, 100, {
+        stage: 'results',
+        message: `Uploaded ${resultsUpserted} of ${resultRows.length} results...`,
+      })
+    }
 
-    const badgeResult = await autoAwardBadges(playerId)
-    badgeUpdateSummary.badgesAwarded += badgeResult.awarded.length
-
-    uploadProgressStore.set(jobId, {
+    // Stage 6: Update stats and awards badges
+    await updateProgress(jobId, 65, 100, {
       stage: 'badges',
-      percent: 70 + Math.floor((i / playerIds.length) * 30),
-      message: `Updated ${i + 1} of ${playerIds.length} players (${badgeUpdateSummary.badgesAwarded} badges awarded)...`,
-      completed: false
+      message: 'Updating player stats and awarding badges...',
     })
-  }
 
-  // Complete
-  const result = {
-    success: true,
-    summary: {
-      players: playersUpserted,
-      events: eventsUpserted,
-      results: resultsUpserted,
-      skipped,
-    },
-    badges: badgeUpdateSummary
-  }
+    const playerIds = Array.from(playersMap.keys())
+    let statsUpdated = 0
+    let badgesAwarded = 0
 
-  uploadProgressStore.set(jobId, {
-    stage: 'complete',
-    percent: 100,
-    message: 'Upload complete!',
-    completed: true,
-    result
-  })
+    for (let i = 0; i < playerIds.length; i++) {
+      try {
+        await updatePlayerLifetimeStats(playerIds[i])
+        statsUpdated++
+
+        const badgeResult = await autoAwardBadges(playerIds[i])
+        badgesAwarded += badgeResult.awarded.length
+      } catch (err) {
+        console.error(`Error processing player ${playerIds[i]}:`, err)
+        // Continue with next player
+      }
+
+      // Update progress every 10 players
+      if ((i + 1) % 10 === 0 || i === playerIds.length - 1) {
+        await updateProgress(jobId, 65 + (i / playerIds.length) * 30, 100, {
+          stage: 'badges',
+          message: `Updated ${statsUpdated} players, ${badgesAwarded} badges awarded...`,
+        })
+      }
+    }
+
+    // Complete
+    const result = {
+      success: true,
+      summary: {
+        players: playersUpserted,
+        events: eventsUpserted,
+        results: resultsUpserted,
+        skipped,
+      },
+      badges: {
+        statsUpdated,
+        badgesAwarded,
+      },
+    }
+
+    await completeJob(jobId, result)
+  } catch (error) {
+    await failJob(jobId, error)
+  }
 }
 
-function parseDOB(raw: string): string | null {
-  if (!raw || raw === 'NULL' || raw === '') return null
+// ============================================================================
+// SYNCHRONOUS UPLOAD (BACKWARDS COMPATIBLE)
+// ============================================================================
+
+async function runUploadSync(file: File, seasonId: string, jobId: string) {
   try {
-    const parts = raw.split('/')
-    if (parts.length !== 3) return null
-    const month = parts[0].padStart(2, '0')
-    const day = parts[1].padStart(2, '0')
-    const yearShort = parseInt(parts[2])
-    const year = yearShort <= 30 ? 2000 + yearShort : 1900 + yearShort
-    return `${year}-${month}-${day}`
-  } catch {
-    return null
+    // Read file
+    const buffer = await file.arrayBuffer()
+    const workbook = XLSX.read(buffer, { type: 'array', cellDates: true })
+
+    const sheetName = Object.keys(workbook.Sheets).find((name) =>
+      name.toLowerCase().replace(/\s/g, '') === 'totalpoints'
+    )
+
+    if (!sheetName) {
+      throw new Error('TotalPoints sheet not found')
+    }
+
+    const sheet = workbook.Sheets[sheetName]
+    const rows: any[] = XLSX.utils.sheet_to_json(sheet, { raw: false, dateNF: 'yyyy-mm-dd' })
+
+    const playersMap = new Map()
+    const eventsMap = new Map()
+    const resultRows = []
+    let skipped = 0
+
+    for (const row of rows) {
+      const playerId = parseInt(row['Player Id'])
+      const eventId = parseInt(row['Tournament Id'])
+
+      if (isNaN(playerId) || isNaN(eventId)) {
+        skipped++
+        continue
+      }
+
+      if (!playersMap.has(playerId)) {
+        playersMap.set(playerId, {
+          id: playerId,
+          full_name: row['Player Name'] || 'Unknown',
+          updated_at: new Date().toISOString(),
+        })
+      }
+
+      if (!eventsMap.has(eventId)) {
+        eventsMap.set(eventId, {
+          id: eventId,
+          name: row['Tournament Name'] || 'Unknown',
+          season_id: parseInt(seasonId),
+          updated_at: new Date().toISOString(),
+        })
+      }
+
+      const points = parseFloat(row['Points'])
+      if (isNaN(points)) {
+        skipped++
+        continue
+      }
+
+      const finishPosition = parseInt(row['Position'])
+      const prizePosition = parseInt(row['Position Of Prize']) || 0
+      const prizeAmount = parseFloat(row['Prize Amount']) || 0
+
+      resultRows.push({
+        player_id: playerId,
+        event_id: eventId,
+        season_id: parseInt(seasonId),
+        finish_position: isNaN(finishPosition) ? 0 : finishPosition,
+        points,
+        prize_position: prizePosition,
+        prize_amount: isNaN(prizeAmount) ? 0 : prizeAmount,
+        updated_at: new Date().toISOString(),
+      })
+    }
+
+    // Upsert all data
+    const playerChunks = chunkArray(Array.from(playersMap.values()), 100)
+    let playersUpserted = 0
+
+    for (const chunk of playerChunks) {
+      const { error } = await supabaseAdmin
+        .from('players')
+        .upsert(chunk, { onConflict: 'id' })
+      if (error) throw new Error(`Players upsert error: ${error.message}`)
+      playersUpserted += chunk.length
+    }
+
+    const eventChunks = chunkArray(Array.from(eventsMap.values()), 100)
+    let eventsUpserted = 0
+
+    for (const chunk of eventChunks) {
+      const { error } = await supabaseAdmin
+        .from('events')
+        .upsert(chunk, { onConflict: 'id' })
+      if (error) throw new Error(`Events upsert error: ${error.message}`)
+      eventsUpserted += chunk.length
+    }
+
+    const resultChunks = chunkArray(resultRows, 100)
+    let resultsUpserted = 0
+
+    for (const chunk of resultChunks) {
+      const { error } = await supabaseAdmin
+        .from('results')
+        .upsert(chunk, { onConflict: 'player_id,event_id' })
+      if (error) throw new Error(`Results upsert error: ${error.message}`)
+      resultsUpserted += chunk.length
+    }
+
+    // Update stats and badges
+    let statsUpdated = 0
+    let badgesAwarded = 0
+
+    for (const playerId of playersMap.keys()) {
+      await updatePlayerLifetimeStats(playerId)
+      statsUpdated++
+
+      const badgeResult = await autoAwardBadges(playerId)
+      badgesAwarded += badgeResult.awarded.length
+    }
+
+    const result = {
+      success: true,
+      summary: {
+        players: playersUpserted,
+        events: eventsUpserted,
+        results: resultsUpserted,
+        skipped,
+      },
+      badges: {
+        statsUpdated,
+        badgesAwarded,
+      },
+    }
+
+    await completeJob(jobId, result)
+    return result
+  } catch (error: any) {
+    await failJob(jobId, error)
+    throw error
   }
 }
 
-function parseDate(raw: string): string | null {
-  if (!raw || raw === 'NULL' || raw === '') return null
-  try {
-    const [datePart, timePart] = raw.toString().split(' ')
-    if (!datePart) return null
-    const parts = datePart.split('/')
-    if (parts.length !== 3) return null
-    const month = parts[0].padStart(2, '0')
-    const day = parts[1].padStart(2, '0')
-    const yearShort = parseInt(parts[2])
-    const year = yearShort <= 30 ? 2000 + yearShort : 1900 + yearShort
-    const time = timePart || '00:00'
-    return `${year}-${month}-${day}T${time}:00`
-  } catch {
-    return null
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+async function updateJobStatus(jobId: string, status: string, metadata?: any) {
+  const updates: any = { status }
+  if (metadata) {
+    updates.metadata = metadata
   }
+
+  const { error } = await supabaseAdmin
+    .from('jobs')
+    .update(updates)
+    .eq('id', jobId)
+
+  if (error) throw error
 }
 
-function chunkArray<T>(array: T[], size: number): T[][] {
-  const chunks: T[][] = []
-  for (let i = 0; i < array.length; i += size) {
-    chunks.push(array.slice(i, i + size))
+async function updateProgress(jobId: string, current: number, total: number, metadata?: any) {
+  const progress = Math.round((current / total) * 100)
+
+  const updates: any = {
+    current_item: current,
+    total_items: total,
+    progress_percent: progress,
+  }
+
+  if (metadata) {
+    updates.metadata = metadata
+  }
+
+  const { error } = await supabaseAdmin
+    .from('jobs')
+    .update(updates)
+    .eq('id', jobId)
+
+  if (error) throw error
+}
+
+async function completeJob(jobId: string, result: any) {
+  const { error } = await supabaseAdmin
+    .from('jobs')
+    .update({
+      status: 'completed',
+      result,
+      progress_percent: 100,
+      completed_at: new Date().toISOString(),
+    })
+    .eq('id', jobId)
+
+  if (error) throw error
+}
+
+async function failJob(jobId: string, error: any) {
+  const errorMessage = error instanceof Error ? error.message : String(error)
+
+  const { error: updateError } = await supabaseAdmin
+    .from('jobs')
+    .update({
+      status: 'failed',
+      result: { error: errorMessage },
+      completed_at: new Date().toISOString(),
+    })
+    .eq('id', jobId)
+
+  if (updateError) console.error('Failed to update job error:', updateError)
+}
+
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  const chunks = []
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size))
   }
   return chunks
 }
