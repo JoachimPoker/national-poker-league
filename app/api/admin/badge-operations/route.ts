@@ -125,8 +125,8 @@ async function runUpdateStatsJob(jobId: string) {
         await updatePlayerLifetimeStats(player.id)
         updated++
 
-        // Update progress every 5 players (to reduce DB writes)
-        if (updated % 5 === 0 || updated === total) {
+        // Update progress every 20 players (reduce DB writes from 100s to single digits)
+        if (updated % 20 === 0 || updated === total) {
           await updateProgress(jobId, updated, total)
         }
       } catch (err) {
@@ -176,8 +176,8 @@ async function runAutoAwardJob(jobId: string) {
         totalBadgesAwarded += result.awarded.length
         processed++
 
-        // Update progress every 5 players
-        if (processed % 5 === 0 || processed === total) {
+        // Update progress every 20 players
+        if (processed % 20 === 0 || processed === total) {
           await updateProgress(jobId, processed, total)
         }
       } catch (err) {

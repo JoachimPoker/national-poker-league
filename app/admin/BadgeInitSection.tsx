@@ -7,7 +7,8 @@ export default function BadgeInitSection() {
   const [progress, setProgress] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // Poll for progress updates
+  // Poll for progress updates - increased from 500ms to 2000ms
+  // This reduces database pressure significantly
   useEffect(() => {
     if (!jobId || !loading) return
 
@@ -29,7 +30,7 @@ export default function BadgeInitSection() {
       } catch (err: any) {
         console.error('Progress poll error:', err)
       }
-    }, 500) // Poll every 500ms
+    }, 2000) // Poll every 2 seconds instead of 500ms
 
     return () => clearInterval(interval)
   }, [jobId, loading])
@@ -88,7 +89,8 @@ export default function BadgeInitSection() {
     }
   }
 
-  const progressPercent = progress ? Math.round((progress.current / progress.total) * 100) : 0
+  const progressPercent = progress ?
+    Math.round((progress.current / progress.total) * 100) : 0
 
   return (
     <div className="mt-12">

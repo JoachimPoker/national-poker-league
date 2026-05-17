@@ -148,11 +148,22 @@ async function runUploadJob(jobId: string, file: File, seasonId: string) {
 
       // Collect events
       if (!eventsMap.has(eventId)) {
+        const tournamentName = row['Tournament Name'] || ''
+        const buyInRaw = row['Buy In']
+        const buyIn = isNaN(parseFloat(buyInRaw)) ? 0 : parseFloat(buyInRaw)
+        const isHighRoller = tournamentName.toLowerCase().includes('high roller')
+        const isLowRoller = !isHighRoller && buyIn <= 300
+
         eventsMap.set(eventId, {
           id: eventId,
-          name: row['Tournament Name'] || 'Unknown',
           season_id: parseInt(seasonId),
-          updated_at: new Date().toISOString(),
+          casino: row['Casino'] || '',
+          tournament_name: tournamentName,
+          start_date: new Date(row['Start Date']).toISOString().split('T')[0],
+          buy_in: buyIn,
+          is_high_roller: isHighRoller,
+          is_low_roller: isLowRoller,
+          web_sync_site_id: parseInt(row['Web Sync Site Id']) || null,
         })
       }
 
@@ -344,11 +355,22 @@ async function runUploadSync(file: File, seasonId: string, jobId: string) {
       }
 
       if (!eventsMap.has(eventId)) {
+        const tournamentName = row['Tournament Name'] || ''
+        const buyInRaw = row['Buy In']
+        const buyIn = isNaN(parseFloat(buyInRaw)) ? 0 : parseFloat(buyInRaw)
+        const isHighRoller = tournamentName.toLowerCase().includes('high roller')
+        const isLowRoller = !isHighRoller && buyIn <= 300
+
         eventsMap.set(eventId, {
           id: eventId,
-          name: row['Tournament Name'] || 'Unknown',
           season_id: parseInt(seasonId),
-          updated_at: new Date().toISOString(),
+          casino: row['Casino'] || '',
+          tournament_name: tournamentName,
+          start_date: new Date(row['Start Date']).toISOString().split('T')[0],
+          buy_in: buyIn,
+          is_high_roller: isHighRoller,
+          is_low_roller: isLowRoller,
+          web_sync_site_id: parseInt(row['Web Sync Site Id']) || null,
         })
       }
 
